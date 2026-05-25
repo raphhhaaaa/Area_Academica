@@ -1,0 +1,6 @@
+venv/
+__pycache__/
+*.pyc
+dados.json
+.env
+playwright/.cache/

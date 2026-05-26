@@ -1,5 +1,6 @@
 from playwright.sync_api import sync_playwright
-from config import INT_FIELDS, USUARIO, SENHA, DEBUG
+from src.config import INT_FIELDS, USUARIO, SENHA, DEBUG
+from src.utils.verificacoes import verifica_faltas
 import json
 
 def busca_aluno(page):
@@ -109,4 +110,5 @@ def main():
         salvar_json(materias, aluno)
 
 if __name__ == "__main__":
-    main()
+    #main()
+    verifica_faltas()

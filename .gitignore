@@ -4,3 +4,5 @@ __pycache__/
 dados.json
 .env
 playwright/.cache/
+src/config/
+.env

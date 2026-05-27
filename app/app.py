@@ -4,7 +4,6 @@ from app.components.summary_cards import summary_cards
 from app.components.discipline_list import discipline_list
 from app.components.add_modal import add_modal
 
-
 def header_section() -> rx.Component:
     return rx.el.div(
         rx.el.div(

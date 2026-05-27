@@ -1,5 +1,6 @@
 import reflex as rx
 from typing import TypedDict
+from app.states.extrator import rodar_extrator
 
 
 class Disciplina(TypedDict):
@@ -28,71 +29,59 @@ def _calc_status(media: float, faltas: int) -> str:
     return "Reprovado por Nota"
 
 
+def formatar_dados_sisav(dados_brutos: dict) -> list[Disciplina]:
+    lista_bruta_disciplinas = dados_brutos.get("disciplinas", [])
+    lista_formatada: list[Disciplina] = []
+
+    for dis in lista_bruta_disciplinas:
+        lista_notas = dis.get('Notas', [])
+
+        nota1 = lista_notas[0].get("Nota", 0.0) if len(lista_notas) > 0 else 0.0
+        nota2 = lista_notas[1].get("Nota", 0.0) if len(lista_notas) > 1 else 0.0
+        nota3 = lista_notas[2].get("Nota", 0.0) if len(lista_notas) > 2 else 0.0
+
+        faltas = dis.get('Faltas', 0)
+        media = 0.0        
+        if len(lista_notas) > 0:
+            soma = 0.0
+            for nota in lista_notas:
+                soma += nota['Nota']
+            media = soma / len(lista_notas)
+
+        status_calculado = _calc_status(media, faltas)
+
+        disicplina_tipada = Disciplina = {
+            "id": dis.get("Código", "S/N"),
+            "nome": dis.get("Disciplina", "Desconhecida"),
+            "faltas": faltas,
+            "nota1": float(nota1),
+            "nota2": float(nota2),
+            "nota3": float(nota3),
+            "media": round(media, 1),
+            "status": status_calculado
+        }
+        lista_formatada.append(disicplina_tipada)
+
+    return lista_formatada
+
 class AcademicState(rx.State):
     limite_faltas: int = LIMITE_FALTAS
     # Initial realistic sample data
-    disciplinas: list[Disciplina] = [
-        {
-            "id": "1",
-            "nome": "Cálculo Diferencial e Integral I",
-            "faltas": 4,
-            "nota1": 8.5,
-            "nota2": 7.0,
-            "nota3": 7.5,
-            "media": 7.67,
-            "status": "Aprovado",
-        },
-        {
-            "id": "2",
-            "nome": "Algoritmos e Estruturas de Dados",
-            "faltas": 12,
-            "nota1": 9.0,
-            "nota2": 8.5,
-            "nota3": 9.5,
-            "media": 9.00,
-            "status": "Aprovado",
-        },
-        {
-            "id": "3",
-            "nome": "Física Geral e Experimental I",
-            "faltas": 20,
-            "nota1": 5.0,
-            "nota2": 6.0,
-            "nota3": 4.5,
-            "media": 5.17,
-            "status": "Reprovado por Falta",
-        },
-        {
-            "id": "4",
-            "nome": "Álgebra Linear aplicada",
-            "faltas": 6,
-            "nota1": 4.5,
-            "nota2": 5.5,
-            "nota3": 6.0,
-            "media": 5.33,
-            "status": "Exame",
-        },
-        {
-            "id": "5",
-            "nome": "Introdução à Engenharia de Software",
-            "faltas": 2,
-            "nota1": 9.5,
-            "nota2": 10.0,
-            "nota3": 9.0,
-            "media": 9.50,
-            "status": "Aprovado",
-        },
-        {
-            "id": "6",
-            "nome": "Química Tecnológica Geral",
-            "faltas": 8,
-            "nota1": 3.0,
-            "nota2": 4.0,
-            "nota3": 3.5,
-            "media": 3.50,
-            "status": "Reprovado por Nota",
-        },
-    ]
+    disciplinas: list[Disciplina] = []
+    is_loading: bool = False
+
+    def disparar_sincronizacao(self):
+        self.is_loading = True
+        return AcademicState.executar_scraping_sync
+    
+    def executar_scraping_sync(self):
+        try:
+            dados_brutos = rodar_extrator()
+            self.discplina = formatar_dados_sisav(dados_brutos)
+        except Exception as e:
+            return rx.toast(f"Erro ao extrair dados: {str(e)}")
+        finally:
+            self.is_loading - False
 
     # Modal trigger state
     show_modal: bool = False

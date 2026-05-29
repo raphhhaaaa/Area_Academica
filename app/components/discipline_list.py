@@ -299,8 +299,8 @@ def discipline_list() -> rx.Component:
                     ),
                     # Add Grade Button
                     rx.el.button(
-                        rx.icon("plus", class_name="h-4 w-4"),
-                        "Nova Disciplina",
+                        rx.icon("cloud_sync", class_name="h-4 w-4"),
+                        "Sincronizar",
                         on_click=AcademicState.toggle_modal,
                         class_name="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 active:scale-98 text-white font-bold text-sm px-5 py-2.5 rounded-xl shadow-xs transition-all w-full md:w-auto",
                     ),

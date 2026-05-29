@@ -1,18 +1,22 @@
-from playwright.sync_api import sync_playwright
+from playwright.async_api import async_playwright
 from app.states.config import INT_FIELDS, USUARIO, SENHA, DEBUG
 from app.states.utils.verificacoes import verifica_faltas
 import json
 
-def busca_aluno(page) -> dict:
+async def busca_aluno(page) -> dict:
     aluno = {}
-
     dados_aluno = page.locator(".userData td[data-label]")
 
-    for i in range(dados_aluno.count()):
+    count = await dados_aluno.count()
+
+    for i in range(count):
         td = dados_aluno.nth(i)
 
-        label = td.get_attribute("data-label").replace(":", "").strip()
-        valor = td.inner_text().strip()
+        label_raw = await td.get_attribute("data-label")
+        valor_raw = await td.inner_text()
+
+        label = label_raw.replace(":", "").strip()
+        valor = valor_raw.strip()
 
         ## CONVERTE PARA INTEIRO SE ESTIVER DENTRO DE INT_FIELDS
         if label in INT_FIELDS:
@@ -22,22 +26,28 @@ def busca_aluno(page) -> dict:
 
     return aluno
 
-def buscar_disciplinas(page):
+async def buscar_disciplinas(page):
+    materias = []
     tbodies = page.locator("table.masterDetail > tbody")
 
-    materias = []
+    count = await tbodies.count()
 
-    for l in range(tbodies.count()):
+    for l in range(count):
         tbody = tbodies.nth(l)
         detail = tbody.locator("tr.detail")
 
         tds = tbody.locator("td[data-label]")
 
         materia = {}
-        for i in range(tds.count()):
+
+        count2 = await tds.count()
+        for i in range(count2):
             td = tds.nth(i)
-            label = td.get_attribute("data-label").replace(":", "").strip()
-            valor = td.inner_text().strip()
+            label_raw = await td.get_attribute("data-label")
+            valor_raw = await td.inner_text()
+
+            label = label_raw.replace(":", "").strip()
+            valor = valor_raw.strip()
 
             ## CONVERTE PARA INTEIRO SE ESTIVER DENTRO DE INT_FIELDS
             if label in INT_FIELDS:
@@ -47,16 +57,23 @@ def buscar_disciplinas(page):
 
         materia["Notas"] = []
 
-        if detail.count() > 0:
+
+        count_detail = await detail.count()
+        if count_detail > 0:
             avaliacoes = detail.locator("table tbody tr")
 
-            for a in range(avaliacoes.count()):
+            count = await avaliacoes.count()
+            
+            for a in range(count):
                 avaliacao = avaliacoes.nth(a)
 
                 colunas = avaliacao.locator("td")
 
-                nome_avaliacao = colunas.nth(0).inner_text().strip()
-                nota = colunas.nth(1).inner_text().strip()
+                nome_avaliacao_raw = await colunas.nth(0).inner_text()
+                nota_raw = await colunas.nth(1).inner_text()
+                
+                nome_avaliacao = nome_avaliacao_raw.strip()
+                nota = nota_raw.strip()
 
                 nota = float(nota.replace(",", "."))
 
@@ -79,38 +96,35 @@ def salvar_json(materias, aluno):
         }
         json.dump(dados, arquivo, indent=4, ensure_ascii=False)
 
-def login(page):
-    page.fill("#username", USUARIO)
-    page.fill("#password", SENHA)
-    page.click("#cmdEnviar")
+async def login(page):
+    await page.fill("#username", USUARIO)
+    await page.fill("#password", SENHA)
+    await page.click("#cmdEnviar")
 
-def acessar_consulta(page):
-    page.click("#Consultas")
-    page.get_by_text("Notas e faltas").click()
-    page.select_option("#ano", "2026")
-    page.wait_for_selector("#tabelaDeNotas table")
+async def acessar_consulta(page):
+    await page.click("#Consultas")
+    await page.get_by_text("Notas e faltas").click()
+    await page.select_option("#ano", "2026")
+    await page.wait_for_selector("#tabelaDeNotas table")
 
-def rodar_extrator():
-    with sync_playwright() as p:
+async def rodar_extrator():
+    async with async_playwright() as p:
         # Abre o navegador
-        browser = p.chromium.launch(headless=not DEBUG) ##headless = false mostra o navegador abrindo
-        page = browser.new_page() ## abre nova pagina 'vazia' / nova
+        browser = await p.chromium.launch(headless=not DEBUG) ##headless = false mostra o navegador abrindo
+        page = await browser.new_page() ## abre nova pagina 'vazia' / nova
 
-        page.goto("https://npd.uem.br/sav/auth/login")  ## comando para ir para um site / url especifica
-
-        try:
-            login(page)
-            acessar_consulta(page)
-        except ConnectionError as e:
-            print("Erro ao fazer login ou acessar a página de consultas: ", e)
+        await page.goto("https://npd.uem.br/sav/auth/login")  ## comando para ir para um site / url especifica
 
         try:
-            aluno = busca_aluno(page)
-            disciplinas = buscar_disciplinas(page)
-        except Exception as e:
-            print(f"Erro ao buscar dados do aluno: {e}")  
-            
-        try:
+            # 1. autenticação e navegação
+            await login(page)
+            await acessar_consulta(page)
+
+            # 2. extração de dados
+            aluno = await busca_aluno(page)
+            disciplinas = await buscar_disciplinas(page)
+
+            # 3. persistência e retorno
             salvar_json(disciplinas, aluno)
             print(f"Dados de {aluno['Nome']} salvos com sucesso.")
             
@@ -118,12 +132,17 @@ def rodar_extrator():
                 "aluno": aluno,
                 "disciplinas": disciplinas
             }
-
+            return dados_finais
+        
         except Exception as e:
-            print(f"Erro ao persistir dados do aluno: {e}")
+            print(f"Erro crítico ao rodar o extrator: {e}")  
+            raise e
+
+        finally:
+            await browser.close()
 
 
-        return dados_finais
 
 if __name__ == "__main__":
-    rodar_extrator()
+    import asyncio
+    asyncio.run(rodar_extrator())

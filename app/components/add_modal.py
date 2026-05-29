@@ -8,7 +8,7 @@ def add_modal() -> rx.Component:
             rx.el.div(
                 rx.el.div(
                     rx.el.h3(
-                        "Adicionar Nova Disciplina",
+                        "Login",
                         class_name=rx.cond(
                             AcademicState.is_dark,
                             "text-lg font-bold text-gray-100",
@@ -31,7 +31,7 @@ def add_modal() -> rx.Component:
                         # Name Input
                         rx.el.div(
                             rx.el.label(
-                                "Nome da Disciplina",
+                                "Usuário",
                                 class_name=rx.cond(
                                     AcademicState.is_dark,
                                     "block text-sm font-semibold text-gray-300 mb-1.5",
@@ -41,7 +41,26 @@ def add_modal() -> rx.Component:
                             rx.el.input(
                                 type="text",
                                 name="nome",
-                                placeholder="Ex: Cálculo III, Banco de Dados...",
+                                placeholder="Ex: ra000000 (sem o @uem.br)",
+                                class_name=rx.cond(
+                                    AcademicState.is_dark,
+                                    "w-full px-4 py-2.5 bg-gray-800 border border-gray-750 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm text-gray-100 placeholder-gray-500",
+                                    "w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm text-gray-900",
+                                ),
+                            ),
+
+                            rx.el.label(
+                                "Senha",
+                                class_name=rx.cond(
+                                    AcademicState.is_dark,
+                                    "block text-sm font-semibold text-gray-300 mb-1.5",
+                                    "block text-sm font-semibold text-gray-700 mb-1.5",
+                                ),
+                            ),
+                            rx.el.input(
+                                type="password",
+                                name="senha",
+                                placeholder="Digite sua senha do SISAV",
                                 class_name=rx.cond(
                                     AcademicState.is_dark,
                                     "w-full px-4 py-2.5 bg-gray-800 border border-gray-750 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm text-gray-100 placeholder-gray-500",
@@ -50,93 +69,7 @@ def add_modal() -> rx.Component:
                             ),
                             class_name="mb-4",
                         ),
-                        # Grid for Faltas & Notes
-                        rx.el.div(
-                            rx.el.div(
-                                rx.el.label(
-                                    "Quantidade de Faltas",
-                                    class_name=rx.cond(
-                                        AcademicState.is_dark,
-                                        "block text-sm font-semibold text-gray-300 mb-1.5",
-                                        "block text-sm font-semibold text-gray-700 mb-1.5",
-                                    ),
-                                ),
-                                rx.el.input(
-                                    type="number",
-                                    name="faltas",
-                                    default_value="0",
-                                    class_name=rx.cond(
-                                        AcademicState.is_dark,
-                                        "w-full px-4 py-2.5 bg-gray-800 border border-gray-750 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm text-gray-100",
-                                        "w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm text-gray-900",
-                                    ),
-                                ),
-                            ),
-                            rx.el.div(
-                                rx.el.label(
-                                    "Nota Avaliação 1",
-                                    class_name=rx.cond(
-                                        AcademicState.is_dark,
-                                        "block text-sm font-semibold text-gray-300 mb-1.5",
-                                        "block text-sm font-semibold text-gray-700 mb-1.5",
-                                    ),
-                                ),
-                                rx.el.input(
-                                    type="number",
-                                    name="nota1",
-                                    step="0.1",
-                                    placeholder="0.0 a 10.0",
-                                    class_name=rx.cond(
-                                        AcademicState.is_dark,
-                                        "w-full px-4 py-2.5 bg-gray-800 border border-gray-750 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm text-gray-100 placeholder-gray-500",
-                                        "w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm text-gray-900",
-                                    ),
-                                ),
-                            ),
-                            rx.el.div(
-                                rx.el.label(
-                                    "Nota Avaliação 2",
-                                    class_name=rx.cond(
-                                        AcademicState.is_dark,
-                                        "block text-sm font-semibold text-gray-300 mb-1.5",
-                                        "block text-sm font-semibold text-gray-700 mb-1.5",
-                                    ),
-                                ),
-                                rx.el.input(
-                                    type="number",
-                                    name="nota2",
-                                    step="0.1",
-                                    placeholder="0.0 a 10.0",
-                                    class_name=rx.cond(
-                                        AcademicState.is_dark,
-                                        "w-full px-4 py-2.5 bg-gray-800 border border-gray-750 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm text-gray-100 placeholder-gray-500",
-                                        "w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm text-gray-900",
-                                    ),
-                                ),
-                            ),
-                            rx.el.div(
-                                rx.el.label(
-                                    "Nota Avaliação 3",
-                                    class_name=rx.cond(
-                                        AcademicState.is_dark,
-                                        "block text-sm font-semibold text-gray-300 mb-1.5",
-                                        "block text-sm font-semibold text-gray-700 mb-1.5",
-                                    ),
-                                ),
-                                rx.el.input(
-                                    type="number",
-                                    name="nota3",
-                                    step="0.1",
-                                    placeholder="0.0 a 10.0",
-                                    class_name=rx.cond(
-                                        AcademicState.is_dark,
-                                        "w-full px-4 py-2.5 bg-gray-800 border border-gray-750 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm text-gray-100 placeholder-gray-500",
-                                        "w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm text-gray-900",
-                                    ),
-                                ),
-                            ),
-                            class_name="grid grid-cols-2 gap-4 mb-6",
-                        ),
+                        
                         # Actions
                         rx.el.div(
                             rx.el.button(
@@ -150,7 +83,8 @@ def add_modal() -> rx.Component:
                                 ),
                             ),
                             rx.el.button(
-                                "Salvar Disciplina",
+                                "Fazer autenticação",
+                                on_click=AcademicState.disparar_sincronizacao(),
                                 type="submit",
                                 class_name="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold shadow-sm transition-colors",
                             ),

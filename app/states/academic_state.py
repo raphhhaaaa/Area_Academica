@@ -15,6 +15,14 @@ class Disciplina(TypedDict):
         str  # "Aprovado", "Exame", "Reprovado por Falta", "Reprovado por Nota"
     )
 
+class Aluno(TypedDict):
+    ra: int
+    nome: str
+    curso: str
+    turno: str
+    campus: str
+    serie: int
+    sit_acad: int
 
 LIMITE_FALTAS = 16
 
@@ -29,9 +37,11 @@ def _calc_status(media: float, faltas: int) -> str:
     return "Reprovado por Nota"
 
 
-def formatar_dados_sisav(dados_brutos: dict) -> list[Disciplina]:
+def formatar_dados_sisav(dados_brutos: dict) -> list[Disciplina]:            # [0] para Disciplinas ; [1] para Aluno
+    lista_dados: list[list] = []
+    
     lista_bruta_disciplinas = dados_brutos.get("disciplinas", [])
-    lista_formatada: list[Disciplina] = []
+    lista_formatada_disciplina: list[Disciplina] = []
 
     for dis in lista_bruta_disciplinas:
         lista_notas = dis.get('Notas', [])
@@ -60,24 +70,49 @@ def formatar_dados_sisav(dados_brutos: dict) -> list[Disciplina]:
             "media": round(media, 1),
             "status": status_calculado
         }
-        lista_formatada.append(disicplina_tipada)
+        lista_formatada_disciplina.append(disicplina_tipada)
 
-    return lista_formatada
+    lista_bruta_aluno = dados_brutos.get("aluno", [])
+    lista_formatada_aluno: list[Aluno] = []
+
+    for alu in lista_bruta_aluno:
+
+        aluno_tipado = Aluno = {
+            "ra": alu.get("RA", ""),
+            "nome": alu.get("Nome", ""),
+            "curso": alu.get("Curso", ""),
+            "turno": alu.get("Turno", ""),
+            "campus": alu.get("Campus/Polo", ""),
+            "serie": alu.get("Série", ""),
+            "sit_acad": alu.get("Sit. Acad.", "")
+        }
+        lista_formatada_aluno.append(aluno_tipado)
+    
+    return lista_dados
 
 class AcademicState(rx.State):
+    aluno: Aluno = {"ra": "", "nome": "Carregando...", "curso": ""}
+    
     limite_faltas: int = LIMITE_FALTAS
-    # Initial realistic sample data
     disciplinas: list[Disciplina] = []
     is_loading: bool = False
 
+    @rx.var
+    def get_nome_aluno(self) -> str:
+        print(self.aluno)
+        return self.aluno.get("nome", "")
+
+    @rx.event
     def disparar_sincronizacao(self):
         self.is_loading = True
         return AcademicState.executar_scraping_sync
     
-    def executar_scraping_sync(self):
+    async def executar_scraping_sync(self):
+        self.is_loading = True
         try:
-            dados_brutos = rodar_extrator()
-            self.discplina = formatar_dados_sisav(dados_brutos)
+            dados_brutos = await rodar_extrator()
+            self.disciplinas = formatar_dados_sisav(dados_brutos)[0]
+            self.aluno = formatar_dados_sisav(dados_brutos)[1]
         except Exception as e:
             return rx.toast(f"Erro ao extrair dados: {str(e)}")
         finally:
@@ -160,13 +195,31 @@ class AcademicState(rx.State):
             self.form_nota2 = 0.0
             self.form_nota3 = 0.0
 
+
+    def salvar_usuario(self, login, senha):
+        return 
+
     @rx.event
     def handle_submit(self, form_data: dict):
-        nome = form_data.get("nome", "").strip()
-        if not nome:
+        login = form_data.get("nome", "").strip()
+        senha = form_data.get("senha", "")
+        if not login:
             return rx.toast(
-                "Por favor, preencha o nome da disciplina.", duration=3000
+                "Por favor, preencha o campo de Usuário.", duration=3000
             )
+        
+        if not senha:
+            return rx.toast(
+                "Por favor, preencha o campo de Senha", duration=3000
+            )
+
+        usuario_login = {
+            "usuario": login,
+            "senha": senha
+        }
+        
+        self.salvar_usuario(login, senha)
+        return 
 
         try:
             faltas = int(form_data.get("faltas", 0))

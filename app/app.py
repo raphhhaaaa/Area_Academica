@@ -3,6 +3,7 @@ from app.states.academic_state import AcademicState
 from app.components.summary_cards import summary_cards
 from app.components.discipline_list import discipline_list
 from app.components.add_modal import add_modal
+from app.components.login_page import login
 
 def header_section() -> rx.Component:
     return rx.el.div(
@@ -45,7 +46,7 @@ def header_section() -> rx.Component:
                     ),
                     rx.el.div(
                         rx.el.p(
-                            "Gabriel Silva",
+                            rx.heading(AcademicState.get_nome_aluno),
                             class_name=rx.cond(
                                 AcademicState.is_dark,
                                 "font-bold text-gray-100 text-xs sm:text-sm whitespace-nowrap",

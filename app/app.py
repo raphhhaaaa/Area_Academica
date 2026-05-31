@@ -3,7 +3,6 @@ from app.states.academic_state import AcademicState
 from app.components.summary_cards import summary_cards
 from app.components.discipline_list import discipline_list
 from app.components.add_modal import add_modal
-from app.components.login_page import login
 
 def header_section() -> rx.Component:
     return rx.el.div(
@@ -40,13 +39,21 @@ def header_section() -> rx.Component:
                 # Profile Card
                 rx.el.div(
                     rx.el.img(
-                        src="https://api.dicebear.com/9.x/initials/svg?seed=Gabriel+Silva",
+                        src=rx.cond(
+                            AcademicState.get_nome_aluno != "",
+                            "https://api.dicebear.com/9.x/initials/svg?seed=" + AcademicState.get_nome_aluno,
+                            "https://api.dicebear.com/9.x/initials/svg?seed=Aluno",
+                        ),
                         alt="Foto do Estudante",
                         class_name="size-9 sm:size-11 rounded-full shrink-0",
                     ),
                     rx.el.div(
                         rx.el.p(
-                            rx.heading(AcademicState.get_nome_aluno),
+                            rx.cond(
+                                AcademicState.get_nome_aluno != "",
+                                AcademicState.get_nome_aluno,
+                                "Clique em Sincronizar",
+                            ),
                             class_name=rx.cond(
                                 AcademicState.is_dark,
                                 "font-bold text-gray-100 text-xs sm:text-sm whitespace-nowrap",
@@ -54,7 +61,7 @@ def header_section() -> rx.Component:
                             ),
                         ),
                         rx.el.p(
-                            "Matrícula: #202410389",
+                            AcademicState.get_ra_aluno,
                             class_name="text-[10px] sm:text-xs text-gray-400 font-medium whitespace-nowrap",
                         ),
                         class_name="flex flex-col",

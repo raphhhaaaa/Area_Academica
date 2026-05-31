@@ -1,34 +1,53 @@
 import reflex as rx
 from typing import TypedDict
-from app.states.extrator import rodar_extrator
+from app.states.extrator import rodar_extrator, CredenciaisInvalidasError, AnoLetivoInvalidoError
+from app.states.config import salvar_credenciais
+from datetime import date
 
 
 class Disciplina(TypedDict):
     id: str
     nome: str
     faltas: int
+    limite_faltas: int
     nota1: float
     nota2: float
     nota3: float
     media: float
-    status: (
-        str  # "Aprovado", "Exame", "Reprovado por Falta", "Reprovado por Nota"
-    )
+    status: str  # "Aprovado", "Exame", "Reprovado por Falta", "Reprovado por Nota", "Em andamento"
+    em_andamento: bool  # True quando o semestre ainda está em curso (Situação = Matriculado)
+    faltas_originais: int  # Faltas vindas do SISAV — valor mínimo imutável
+    status_original: str  # Status oficial do SISAV — nunca é alterado, usado para restaurar
+
 
 class Aluno(TypedDict):
-    ra: int
+    ra: str
     nome: str
     curso: str
     turno: str
     campus: str
-    serie: int
-    sit_acad: int
-
-LIMITE_FALTAS = 16
+    serie: str
+    sit_acad: str
 
 
-def _calc_status(media: float, faltas: int) -> str:
-    if faltas >= LIMITE_FALTAS:
+LIMITE_FALTAS_PADRAO = 16
+
+
+# Mapeamento dos status do SISAV para os nossos labels internos
+_MAP_STATUS_SISAV = {
+    "Aprovado":   "Aprovado",
+    "Aprovada":   "Aprovado",
+    "Rep. Nota":  "Reprovado por Nota",
+    "Rep. Falta": "Reprovado por Falta",
+    "Reprovado":  "Reprovado por Nota",
+    "Exame":      "Exame",
+    "Em Exame":   "Exame",
+}
+
+
+def _calc_status(media: float, faltas: int, limite: int = LIMITE_FALTAS_PADRAO) -> str:
+    """Calcula o status parcial a partir das notas já disponíveis (semestre em andamento)."""
+    if faltas >= limite:
         return "Reprovado por Falta"
     if media >= 7.0:
         return "Aprovado"
@@ -37,11 +56,32 @@ def _calc_status(media: float, faltas: int) -> str:
     return "Reprovado por Nota"
 
 
-def formatar_dados_sisav(dados_brutos: dict) -> list[Disciplina]:            # [0] para Disciplinas ; [1] para Aluno
-    lista_dados: list[list] = []
-    
-    lista_bruta_disciplinas = dados_brutos.get("disciplinas", [])
+def _resolver_status(situacao_sisav: str, media: float, faltas: int, limite: int) -> tuple[str, bool]:
+    """
+    Decide o status final da disciplina:
+    - Se o SISAV ainda não encerrou a matéria (situação == Matriculado ou vazia), retorna "Em andamento".
+    - Caso contrário, usa o status oficial do SISAV mapeado para nossos labels.
+    Retorna (status_display, em_andamento).
+    """
+    situacao = situacao_sisav.strip() if situacao_sisav else ""
+
+    if situacao == "" or situacao == "Matriculado":
+        return "Em andamento", True
+
+    # Usa o mapeamento; se não reconhecer, mantém o texto do SISAV
+    status_mapeado = _MAP_STATUS_SISAV.get(situacao, situacao)
+    return status_mapeado, False
+
+
+def formatar_dados_sisav(dados_brutos: dict) -> tuple[list, dict]:
+    """
+    Formata os dados brutos vindos do extrator Playwright.
+    Retorna uma tupla: (lista_de_disciplinas, dict_aluno)
+    """
+
+    # --- Disciplinas ---
     lista_formatada_disciplina: list[Disciplina] = []
+    lista_bruta_disciplinas = dados_brutos.get("disciplinas", [])
 
     for dis in lista_bruta_disciplinas:
         lista_notas = dis.get('Notas', [])
@@ -50,83 +90,71 @@ def formatar_dados_sisav(dados_brutos: dict) -> list[Disciplina]:            # [
         nota2 = lista_notas[1].get("Nota", 0.0) if len(lista_notas) > 1 else 0.0
         nota3 = lista_notas[2].get("Nota", 0.0) if len(lista_notas) > 2 else 0.0
 
-        faltas = dis.get('Faltas', 0)
-        media = 0.0        
+        faltas = int(dis.get('Faltas', 0))
+        limite = int(dis.get('LimiteFaltas', LIMITE_FALTAS_PADRAO))
+
+        media = 0.0
         if len(lista_notas) > 0:
-            soma = 0.0
-            for nota in lista_notas:
-                soma += nota['Nota']
+            soma = sum(nota['Nota'] for nota in lista_notas)
             media = soma / len(lista_notas)
 
-        status_calculado = _calc_status(media, faltas)
+        # Usa situação oficial do SISAV quando disponível
+        situacao_sisav = str(dis.get('Situação', dis.get('Situacao', '')))
+        status, em_andamento = _resolver_status(situacao_sisav, media, faltas, limite)
 
-        disicplina_tipada = Disciplina = {
+        disciplina_formatada: Disciplina = {
             "id": dis.get("Código", "S/N"),
             "nome": dis.get("Disciplina", "Desconhecida"),
             "faltas": faltas,
+            "faltas_originais": faltas,
+            "limite_faltas": limite,
             "nota1": float(nota1),
             "nota2": float(nota2),
             "nota3": float(nota3),
             "media": round(media, 1),
-            "status": status_calculado
+            "status": status,
+            "status_original": status,  # espelho imutável do status inicial
+            "em_andamento": em_andamento,
         }
-        lista_formatada_disciplina.append(disicplina_tipada)
+        lista_formatada_disciplina.append(disciplina_formatada)
 
-    lista_bruta_aluno = dados_brutos.get("aluno", [])
-    lista_formatada_aluno: list[Aluno] = []
+    # --- Aluno ---
+    lista_bruta_aluno = dados_brutos.get("aluno", {})
 
-    for alu in lista_bruta_aluno:
+    # O extrator retorna aluno como dict (não lista), tratar ambos os casos
+    if isinstance(lista_bruta_aluno, list):
+        alu = lista_bruta_aluno[0] if lista_bruta_aluno else {}
+    else:
+        alu = lista_bruta_aluno
 
-        aluno_tipado = Aluno = {
-            "ra": alu.get("RA", ""),
-            "nome": alu.get("Nome", ""),
-            "curso": alu.get("Curso", ""),
-            "turno": alu.get("Turno", ""),
-            "campus": alu.get("Campus/Polo", ""),
-            "serie": alu.get("Série", ""),
-            "sit_acad": alu.get("Sit. Acad.", "")
-        }
-        lista_formatada_aluno.append(aluno_tipado)
-    
-    return lista_dados
+    aluno_formatado: Aluno = {
+        "ra": str(alu.get("RA", "")),
+        "nome": alu.get("Nome", ""),
+        "curso": alu.get("Curso", ""),
+        "turno": alu.get("Turno", ""),
+        "campus": alu.get("Campus/Polo", ""),
+        "serie": str(alu.get("Série", "")),
+        "sit_acad": str(alu.get("Sit. Acad.", ""))
+    }
+
+    return lista_formatada_disciplina, aluno_formatado
+
 
 class AcademicState(rx.State):
-    aluno: Aluno = {"ra": "", "nome": "Carregando...", "curso": ""}
-    
-    limite_faltas: int = LIMITE_FALTAS
+    aluno: Aluno = {"ra": "", "nome": "", "curso": "", "turno": "", "campus": "", "serie": "", "sit_acad": ""}
+
+    limite_faltas: int = LIMITE_FALTAS_PADRAO
     disciplinas: list[Disciplina] = []
     is_loading: bool = False
-
-    @rx.var
-    def get_nome_aluno(self) -> str:
-        print(self.aluno)
-        return self.aluno.get("nome", "")
-
-    @rx.event
-    def disparar_sincronizacao(self):
-        self.is_loading = True
-        return AcademicState.executar_scraping_sync
-    
-    async def executar_scraping_sync(self):
-        self.is_loading = True
-        try:
-            dados_brutos = await rodar_extrator()
-            self.disciplinas = formatar_dados_sisav(dados_brutos)[0]
-            self.aluno = formatar_dados_sisav(dados_brutos)[1]
-        except Exception as e:
-            return rx.toast(f"Erro ao extrair dados: {str(e)}")
-        finally:
-            self.is_loading - False
+    ano_letivo: str = str(date.today().year)
+    error_message: str = ""
 
     # Modal trigger state
     show_modal: bool = False
 
-    # Form states (used for adding or editing)
-    form_nome: str = ""
-    form_faltas: int = 0
-    form_nota1: float = 0.0
-    form_nota2: float = 0.0
-    form_nota3: float = 0.0
+    # Form states (usados no login)
+    form_usuario: str = ""
+    form_senha: str = ""
 
     # Search and Filters
     search_query: str = ""
@@ -134,6 +162,19 @@ class AcademicState(rx.State):
 
     # Theme state
     is_dark: bool = False
+
+    @rx.var
+    def get_nome_aluno(self) -> str:
+        return self.aluno.get("nome", "")
+
+    @rx.var
+    def get_ra_aluno(self) -> str:
+        ra = self.aluno.get("ra", "")
+        return f"Matrícula: #{ra}" if ra else "Sem matrícula"
+
+    @rx.var
+    def tem_dados(self) -> bool:
+        return len(self.disciplinas) > 0
 
     @rx.event
     def toggle_theme(self):
@@ -187,86 +228,64 @@ class AcademicState(rx.State):
     @rx.event
     def toggle_modal(self):
         self.show_modal = not self.show_modal
-        # Reset form values
-        if self.show_modal:
-            self.form_nome = ""
-            self.form_faltas = 0
-            self.form_nota1 = 0.0
-            self.form_nota2 = 0.0
-            self.form_nota3 = 0.0
-
-
-    def salvar_usuario(self, login, senha):
-        return 
+        self.error_message = ""
 
     @rx.event
-    def handle_submit(self, form_data: dict):
-        login = form_data.get("nome", "").strip()
+    async def handle_submit(self, form_data: dict):
+        """Recebe credenciais do formulário, dispara o scraping e salva no .env se bem-sucedido."""
+        usuario = form_data.get("nome", "").strip()
         senha = form_data.get("senha", "")
-        if not login:
-            return rx.toast(
-                "Por favor, preencha o campo de Usuário.", duration=3000
-            )
-        
-        if not senha:
-            return rx.toast(
-                "Por favor, preencha o campo de Senha", duration=3000
-            )
+        ano = form_data.get("ano", "")
 
-        usuario_login = {
-            "usuario": login,
-            "senha": senha
-        }
-        
-        self.salvar_usuario(login, senha)
-        return 
+        if not usuario:
+            self.error_message = "Por favor, preencha o campo de Usuário."
+            return
+
+        if not senha:
+            self.error_message = "Por favor, preencha o campo de Senha."
+            return
+
+        self.error_message = ""
+        self.is_loading = True
+        yield  # Flush imediato: envia is_loading=True ao frontend antes do Playwright rodar
 
         try:
-            faltas = int(form_data.get("faltas", 0))
-            n1 = float(form_data.get("nota1", 0.0))
-            n2 = float(form_data.get("nota2", 0.0))
-            n3 = float(form_data.get("nota3", 0.0))
-        except ValueError:
-            return rx.toast(
-                "Valores inválidos para notas ou faltas.", duration=3000
+            self.ano_letivo = ano  # Atualiza o ano letivo selecionado
+            dados_brutos = await rodar_extrator(
+                usuario=usuario,
+                senha=senha,
+                ano_letivo=form_data.get("ano", "").strip() or None,
             )
+            disciplinas, aluno = formatar_dados_sisav(dados_brutos)
+            self.disciplinas = disciplinas
+            self.aluno = aluno
+            self.show_modal = False
+            # Só salva credenciais no .env após login bem-sucedido
+            try:
+                salvar_credenciais(usuario, senha)
+            except Exception as e:
+                print(f"Aviso: não foi possível salvar credenciais no .env: {e}")
 
-        # Cap values
-        n1 = max(0.0, min(10.0, n1))
-        n2 = max(0.0, min(10.0, n2))
-        n3 = max(0.0, min(10.0, n3))
-        faltas = max(0, faltas)
-
-        media = round((n1 + n2 + n3) / 3.0, 2)
-
-        # Status calculation rule (Faltas limit: 16)
-        if faltas >= 16:
-            status = "Reprovado por Falta"
-        elif media >= 7.0:
-            status = "Aprovado"
-        elif media >= 4.0:
-            status = "Exame"
-        else:
-            status = "Reprovado por Nota"
-
-        import uuid
-
-        nova: Disciplina = {
-            "id": str(uuid.uuid4()),
-            "nome": nome,
-            "faltas": faltas,
-            "nota1": n1,
-            "nota2": n2,
-            "nota3": n3,
-            "media": media,
-            "status": status,
-        }
-
-        self.disciplinas.append(nova)
-        self.show_modal = False
-        return rx.toast(
-            f"Disciplina '{nome}' adicionada com sucesso!", duration=3000
-        )
+            yield rx.toast.success(
+                f"Dados de {aluno.get('nome', 'Aluno')} sincronizados com sucesso!",
+                duration=4000,
+            )
+        except CredenciaisInvalidasError as e:
+            # Erro de credenciais: mantém o modal aberto com mensagem clara
+            self.error_message = str(e)
+        except AnoLetivoInvalidoError as e:
+            # Ano não disponível: mantém modal aberto com mensagem clara
+            self.error_message = str(e)
+        except Exception as e:
+            # Erro inesperado (rede, timeout, etc.)
+            msg = str(e)
+            if "Timeout" in msg or "timeout" in msg:
+                self.error_message = "Tempo esgotado ao conectar ao SISAV. Verifique sua internet e tente novamente."
+            else:
+                self.error_message = f"Erro inesperado: {msg[:120]}"
+            yield rx.toast.error(self.error_message, duration=5000)
+        finally:
+            self.is_loading = False
 
     @rx.event
     def remover_disciplina(self, disc_id: str):
@@ -277,21 +296,37 @@ class AcademicState(rx.State):
     def incrementar_falta(self, disc_id: str):
         for d in self.disciplinas:
             if d["id"] == disc_id:
-                if d["faltas"] >= LIMITE_FALTAS:
+                limite = d.get("limite_faltas", LIMITE_FALTAS_PADRAO)
+                if d["faltas"] >= limite:
                     return rx.toast(
-                        f"Limite de {LIMITE_FALTAS} faltas já atingido.",
+                        f"Limite de {limite} faltas já atingido.",
                         duration=2000,
                     )
                 d["faltas"] = d["faltas"] + 1
-                d["status"] = _calc_status(d["media"], d["faltas"])
+                if d["faltas"] >= limite:
+                    # Reprovado por falta tem prioridade absoluta
+                    d["status"] = "Reprovado por Falta"
+                elif d.get("em_andamento", True):
+                    # Semestre em curso: recalcula parcialmente
+                    d["status"] = _calc_status(d["media"], d["faltas"], limite)
+                # Semestre encerrado + faltas < limite: mantém status_original do SISAV
                 break
 
     @rx.event
     def decrementar_falta(self, disc_id: str):
         for d in self.disciplinas:
             if d["id"] == disc_id:
-                if d["faltas"] <= 0:
+                minimo = d.get("faltas_originais", 0)
+                if d["faltas"] <= minimo:
                     return
                 d["faltas"] = d["faltas"] - 1
-                d["status"] = _calc_status(d["media"], d["faltas"])
+                limite = d.get("limite_faltas", LIMITE_FALTAS_PADRAO)
+                if d["faltas"] >= limite:
+                    d["status"] = "Reprovado por Falta"
+                elif d.get("em_andamento", True):
+                    # Semestre em curso: recalcula parcialmente
+                    d["status"] = _calc_status(d["media"], d["faltas"], limite)
+                else:
+                    # Semestre encerrado: restaura status oficial do SISAV
+                    d["status"] = d.get("status_original", d["status"])
                 break

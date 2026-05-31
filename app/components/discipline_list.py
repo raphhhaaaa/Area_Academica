@@ -25,6 +25,10 @@ def status_badge(status: str) -> rx.Component:
                     "Reprovado por Nota",
                     "inline-flex items-center gap-1.5 bg-rose-950/40 text-rose-400 border border-rose-900/50 text-xs font-semibold px-3 py-1 rounded-full w-fit hover:bg-rose-900/30 transition-colors duration-200",
                 ),
+                (
+                    "Em andamento",
+                    "inline-flex items-center gap-1.5 bg-blue-950/40 text-blue-400 border border-blue-900/50 text-xs font-semibold px-3 py-1 rounded-full w-fit transition-colors duration-200",
+                ),
                 "inline-flex items-center gap-1.5 bg-gray-800 text-gray-300 border border-gray-700 text-xs font-semibold px-3 py-1 rounded-full w-fit hover:bg-gray-750 transition-colors duration-200",
             ),
             rx.match(
@@ -44,6 +48,10 @@ def status_badge(status: str) -> rx.Component:
                 (
                     "Reprovado por Nota",
                     "inline-flex items-center gap-1.5 bg-rose-50 text-rose-700 border border-rose-100 text-xs font-semibold px-3 py-1 rounded-full w-fit hover:bg-rose-100/50 transition-colors duration-200",
+                ),
+                (
+                    "Em andamento",
+                    "inline-flex items-center gap-1.5 bg-blue-50 text-blue-600 border border-blue-100 text-xs font-semibold px-3 py-1 rounded-full w-fit transition-colors duration-200",
                 ),
                 "inline-flex items-center gap-1.5 bg-gray-50 text-gray-700 border border-gray-100 text-xs font-semibold px-3 py-1 rounded-full w-fit hover:bg-gray-100/50 transition-colors duration-200",
             ),
@@ -71,10 +79,11 @@ def grade_chip(val: float) -> rx.Component:
 
 
 def faltas_control(item: Disciplina) -> rx.Component:
-    percent = (item["faltas"].to(float) / 16.0) * 100
-    restantes = 16 - item["faltas"].to(int)
+    limite = item["limite_faltas"].to(int)
+    percent = (item["faltas"].to(float) / limite.to(float)) * 100
+    restantes = limite - item["faltas"].to(int)
     msg = rx.cond(
-        item["faltas"] >= 16,
+        item["faltas"] >= limite,
         "Limite de faltas excedido",
         rx.cond(
             restantes == 1,
@@ -84,16 +93,21 @@ def faltas_control(item: Disciplina) -> rx.Component:
     )
     return rx.el.div(
         rx.el.div(
-            rx.el.button(
-                rx.icon("minus", class_name="h-3.5 w-3.5"),
-                on_click=lambda: AcademicState.decrementar_falta(item["id"]),
-                disabled=item["faltas"] <= 0,
-                type="button",
-                class_name=rx.cond(
-                    AcademicState.is_dark,
-                    "size-7 flex items-center justify-center rounded-lg border border-gray-750 bg-gray-800 text-gray-300 hover:bg-gray-750 hover:border-gray-600 active:scale-90 transition-all duration-150 disabled:opacity-30 disabled:cursor-not-allowed shadow-xs",
-                    "size-7 flex items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 hover:border-gray-300 active:scale-90 transition-all duration-150 disabled:opacity-30 disabled:cursor-not-allowed shadow-xs",
+            rx.cond(
+                item["faltas"] > item["faltas_originais"].to(int),
+                # Botão visível quando há faltas manuais para remover
+                rx.el.button(
+                    rx.icon("minus", class_name="h-3.5 w-3.5"),
+                    on_click=lambda: AcademicState.decrementar_falta(item["id"]),
+                    type="button",
+                    class_name=rx.cond(
+                        AcademicState.is_dark,
+                        "size-7 flex items-center justify-center rounded-lg border border-gray-750 bg-gray-800 text-gray-300 hover:bg-gray-750 hover:border-gray-600 active:scale-90 transition-all duration-150 shadow-xs",
+                        "size-7 flex items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 hover:border-gray-300 active:scale-90 transition-all duration-150 shadow-xs",
+                    ),
                 ),
+                # Placeholder invisível para manter o layout estável
+                rx.el.div(class_name="size-7"),
             ),
             rx.el.div(
                 rx.el.span(
@@ -105,7 +119,7 @@ def faltas_control(item: Disciplina) -> rx.Component:
                     ),
                 ),
                 rx.el.span(
-                    "/16",
+                    "/" + item["limite_faltas"].to(str),
                     class_name="text-gray-400 text-xs font-semibold tabular-nums",
                 ),
                 class_name="min-w-[44px] flex items-baseline justify-center gap-0.5",
@@ -113,7 +127,7 @@ def faltas_control(item: Disciplina) -> rx.Component:
             rx.el.button(
                 rx.icon("plus", class_name="h-3.5 w-3.5"),
                 on_click=lambda: AcademicState.incrementar_falta(item["id"]),
-                disabled=item["faltas"] >= 16,
+                disabled=item["faltas"] >= item["limite_faltas"].to(int),
                 type="button",
                 class_name=rx.cond(
                     AcademicState.is_dark,
@@ -126,13 +140,13 @@ def faltas_control(item: Disciplina) -> rx.Component:
         rx.el.div(
             rx.el.div(
                 class_name=rx.cond(
-                    item["faltas"] >= 16,
+                    item["faltas"] >= item["limite_faltas"].to(int),
                     "bg-rose-500 h-1.5 rounded-full transition-all duration-300 ease-out",
                     rx.cond(
-                        item["faltas"] >= 12,
+                        item["faltas"] >= (item["limite_faltas"].to(float) * 0.75).to(int),
                         "bg-rose-400 h-1.5 rounded-full transition-all duration-300 ease-out",
                         rx.cond(
-                            item["faltas"] >= 8,
+                            item["faltas"] >= (item["limite_faltas"].to(float) * 0.5).to(int),
                             "bg-amber-400 h-1.5 rounded-full transition-all duration-300 ease-out",
                             "bg-emerald-500 h-1.5 rounded-full transition-all duration-300 ease-out",
                         ),
@@ -150,13 +164,13 @@ def faltas_control(item: Disciplina) -> rx.Component:
             rx.el.span(
                 msg,
                 class_name=rx.cond(
-                    item["faltas"] >= 16,
+                    item["faltas"] >= item["limite_faltas"].to(int),
                     "text-[11px] font-bold text-rose-500",
                     rx.cond(
-                        item["faltas"] >= 12,
+                        item["faltas"] >= (item["limite_faltas"].to(float) * 0.75).to(int),
                         "text-[11px] font-semibold text-rose-400",
                         rx.cond(
-                            item["faltas"] >= 8,
+                            item["faltas"] >= (item["limite_faltas"].to(float) * 0.5).to(int),
                             "text-[11px] font-semibold text-amber-500",
                             "text-[11px] font-semibold text-emerald-500",
                         ),
@@ -280,6 +294,7 @@ def discipline_list() -> rx.Component:
                     rx.el.div(
                         rx.el.select(
                             rx.el.option("Todos os Status", value="Todas"),
+                            rx.el.option("Em andamento", value="Em andamento"),
                             rx.el.option("Aprovado", value="Aprovado"),
                             rx.el.option("Exame", value="Exame"),
                             rx.el.option("Reprovado", value="Reprovado"),

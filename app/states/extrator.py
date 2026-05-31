@@ -1,7 +1,8 @@
 from playwright.async_api import async_playwright
-from app.states.config import INT_FIELDS, USUARIO, SENHA, DEBUG
-from app.states.utils.verificacoes import verifica_faltas
+from app.states.config import INT_FIELDS, DEBUG
+from datetime import date
 import json
+
 
 async def busca_aluno(page) -> dict:
     aluno = {}
@@ -25,6 +26,7 @@ async def busca_aluno(page) -> dict:
         aluno[label] = valor
 
     return aluno
+
 
 async def buscar_disciplinas(page):
     materias = []
@@ -57,6 +59,19 @@ async def buscar_disciplinas(page):
 
         materia["Notas"] = []
 
+        # Tenta extrair o limite de faltas da carga horária, se disponível
+        # O SISAV pode exibir "Carga Horária" ou similar que permite calcular o limite
+        # Limite de faltas = 25% da carga horária (regra geral universitária)
+        carga = materia.get("Carga Horária", None) or materia.get("CH", None)
+        if carga:
+            try:
+                carga_int = int(str(carga).strip())
+                # Cada aula = 1 hora, 25% de faltas é o limite padrão
+                materia["LimiteFaltas"] = int(carga_int * 0.25)
+            except (ValueError, TypeError):
+                materia["LimiteFaltas"] = 16  # fallback padrão
+        else:
+            materia["LimiteFaltas"] = 16  # fallback padrão
 
         count_detail = await detail.count()
         if count_detail > 0:
@@ -96,18 +111,93 @@ def salvar_json(materias, aluno):
         }
         json.dump(dados, arquivo, indent=4, ensure_ascii=False)
 
-async def login(page):
-    await page.fill("#username", USUARIO)
-    await page.fill("#password", SENHA)
-    await page.click("#cmdEnviar")
 
-async def acessar_consulta(page):
+
+class CredenciaisInvalidasError(Exception):
+    """Lançada quando o SISAV rejeita as credenciais fornecidas."""
+    pass
+
+
+class AnoLetivoInvalidoError(Exception):
+    """Lançada quando o ano letivo não está disponível para o aluno no SISAV."""
+    pass
+
+
+async def login_sisav(page, usuario: str, senha: str):
+    """
+    Preenche e envia o formulário de login do SISAV.
+    Lança CredenciaisInvalidasError imediatamente se o login falhar,
+    sem esperar o timeout do Playwright.
+    """
+    await page.fill("#username", usuario)
+    await page.fill("#password", senha)
+
+    # Clica e aguarda a navegação em paralelo (max 10s)
+    async with page.expect_navigation(timeout=10_000, wait_until="domcontentloaded"):
+        await page.click("#cmdEnviar")
+
+    url_atual = page.url
+
+    # Se ainda estiver na página de login, as credenciais foram rejeitadas
+    if "/auth/login" in url_atual or "/auth/signIn" in url_atual:
+        # Tenta capturar a mensagem de erro exibida pelo SISAV
+        mensagem_erro = ""
+        for seletor in [".errors", ".alert", ".flash", ".error", "p.error", ".mensagem-erro", "#mensagem"]:
+            try:
+                el = page.locator(seletor).first
+                if await el.count() > 0:
+                    mensagem_erro = (await el.inner_text()).strip()
+                    break
+            except Exception:
+                pass
+
+        if not mensagem_erro:
+            mensagem_erro = "Usuário ou senha incorretos. Verifique suas credenciais do SISAV."
+
+        raise CredenciaisInvalidasError(mensagem_erro)
+
+
+async def acessar_consulta(page, ano_letivo: str):
     await page.click("#Consultas")
     await page.get_by_text("Notas e faltas").click()
-    await page.select_option("#ano", "2026")
-    await page.wait_for_selector("#tabelaDeNotas table")
 
-async def rodar_extrator():
+    # Verifica se o ano existe nas opções do select antes de selecionar
+    select = page.locator("#ano")
+    await select.wait_for(timeout=10_000)
+
+    opcoes_disponiveis = await select.locator("option").all_inner_texts()
+    opcoes_valores = await select.evaluate("el => [...el.options].map(o => o.value)")
+
+    if ano_letivo not in opcoes_valores:
+        anos_str = ", ".join(v for v in opcoes_valores if v)  # exclui option vazia
+        raise AnoLetivoInvalidoError(
+            f"O ano {ano_letivo} não está disponível para sua matrícula. "
+            f"Anos disponíveis: {anos_str}."
+        )
+
+    await select.select_option(ano_letivo)
+    await page.wait_for_selector("#tabelaDeNotas table", timeout=15_000)
+
+
+
+async def rodar_extrator(usuario: str = None, senha: str = None, ano_letivo: str = None):
+    """
+    Executa o scraping no SISAV.
+    Se usuario/senha forem fornecidos, usa eles.
+    Caso contrário, lê do config (variáveis de ambiente).
+    """
+    import app.states.config as cfg
+
+    _usuario = usuario or cfg.USUARIO
+    _senha = senha or cfg.SENHA
+
+    # Fallback para ano atual se não informado ou vazio
+    ano_str = str(ano_letivo).strip() if ano_letivo else ""
+    _ano_letivo = ano_str if ano_str else str(date.today().year)
+
+    if not _usuario or not _senha:
+        raise ValueError("Credenciais não fornecidas. Faça login primeiro.")
+
     async with async_playwright() as p:
         # Abre o navegador
         browser = await p.chromium.launch(headless=not DEBUG) ##headless = false mostra o navegador abrindo
@@ -117,8 +207,8 @@ async def rodar_extrator():
 
         try:
             # 1. autenticação e navegação
-            await login(page)
-            await acessar_consulta(page)
+            await login_sisav(page, _usuario, _senha)
+            await acessar_consulta(page, _ano_letivo)
 
             # 2. extração de dados
             aluno = await busca_aluno(page)
@@ -126,7 +216,7 @@ async def rodar_extrator():
 
             # 3. persistência e retorno
             salvar_json(disciplinas, aluno)
-            print(f"Dados de {aluno['Nome']} salvos com sucesso.")
+            print(f"Dados de {aluno.get('Nome', 'Aluno')} salvos com sucesso.")
             
             dados_finais = {
                 "aluno": aluno,

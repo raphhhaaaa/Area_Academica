@@ -155,6 +155,11 @@ class AcademicState(rx.State):
     # Form states (usados no login)
     form_usuario: str = ""
     form_senha: str = ""
+    show_password: bool = False
+
+    @rx.event
+    def toggle_show_password(self):
+        self.show_password = not self.show_password
 
     # Search and Filters
     search_query: str = ""
@@ -330,3 +335,10 @@ class AcademicState(rx.State):
                     # Semestre encerrado: restaura status oficial do SISAV
                     d["status"] = d.get("status_original", d["status"])
                 break
+
+    @rx.var
+    def ano_diferente(self) -> bool:
+        if self.ano_letivo is not None and self.ano_letivo != "":
+            current_year = date.today().year
+            return int(self.ano_letivo) != date.today().year
+        return False

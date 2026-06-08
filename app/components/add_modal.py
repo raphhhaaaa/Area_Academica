@@ -109,16 +109,25 @@ def add_modal() -> rx.Component:
                                     class_name="absolute left-3.5 top-3 h-4 w-4 text-gray-400 pointer-events-none",
                                 ),
                                 rx.el.input(
-                                    type="password",
+                                    type=rx.cond(AcademicState.show_password, "text", "password"),
                                     name="senha",
                                     placeholder="Sua senha do portal SISAV",
                                     auto_complete="current-password",
                                     disabled=AcademicState.is_loading,
                                     class_name=rx.cond(
                                         AcademicState.is_dark,
-                                        "pl-10 w-full px-4 py-2.5 bg-gray-800 border border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 text-sm text-gray-100 placeholder-gray-500 transition-all disabled:opacity-50",
-                                        "pl-10 w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm text-gray-900 placeholder-gray-400 transition-all disabled:opacity-50",
+                                        "pl-10 pr-10 w-full py-2.5 bg-gray-800 border border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 text-sm text-gray-100 placeholder-gray-500 transition-all disabled:opacity-50",
+                                        "pl-10 pr-10 w-full py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm text-gray-900 placeholder-gray-400 transition-all disabled:opacity-50",
                                     ),
+                                ),
+                                rx.el.button(
+                                    rx.icon(
+                                        rx.cond(AcademicState.show_password, "eye-off", "eye"),
+                                        class_name="h-4 w-4 text-gray-400"
+                                    ),
+                                    type="button",
+                                    on_click=AcademicState.toggle_show_password,
+                                    class_name="absolute right-3.5 top-3.5 hover:opacity-70 transition-opacity",
                                 ),
                                 class_name="relative",
                             ),

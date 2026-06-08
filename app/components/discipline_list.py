@@ -1,6 +1,6 @@
 import reflex as rx
 from app.states.academic_state import AcademicState, Disciplina
-
+from datetime import date
 
 def status_badge(status: str) -> rx.Component:
     return rx.el.span(
@@ -79,6 +79,7 @@ def grade_chip(val: float) -> rx.Component:
 
 
 def faltas_control(item: Disciplina) -> rx.Component:
+    current_year = date.today().year
     limite = item["limite_faltas"].to(int)
     percent = (item["faltas"].to(float) / limite.to(float)) * 100
     restantes = limite - item["faltas"].to(int)
@@ -127,7 +128,7 @@ def faltas_control(item: Disciplina) -> rx.Component:
             rx.el.button(
                 rx.icon("plus", class_name="h-3.5 w-3.5"),
                 on_click=lambda: AcademicState.incrementar_falta(item["id"]),
-                disabled=item["faltas"] >= item["limite_faltas"].to(int),
+                disabled=(item["faltas"] >= item["limite_faltas"].to(int)) | AcademicState.ano_diferente,
                 type="button",
                 class_name=rx.cond(
                     AcademicState.is_dark,

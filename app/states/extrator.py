@@ -28,7 +28,7 @@ async def busca_aluno(page) -> dict:
     return aluno
 
 
-async def buscar_disciplinas(page):
+async def buscar_disciplinas(page, limites_faltas):
     materias = []
     tbodies = page.locator("table.masterDetail > tbody")
 
@@ -62,13 +62,18 @@ async def buscar_disciplinas(page):
         # Tenta extrair o limite de faltas da carga horária, se disponível
         # O SISAV pode exibir "Carga Horária" ou similar que permite calcular o limite
         # Limite de faltas = 25% da carga horária (regra geral universitária)
-        carga = materia.get("Carga Horária", None) or materia.get("CH", None)
+        codigo_disciplina = materia.get("Código", "")
+        carga = limites_faltas.get(codigo_disciplina)
         if carga:
             try:
-                carga_int = int(str(carga).strip())
+                # Ignora casas decimais se vier como "68,0" ou "68.0"
+                carga_base = str(carga).split(',')[0].split('.')[0]
+                carga_str = ''.join(filter(str.isdigit, carga_base))
+                carga_int = int(carga_str)
                 # Cada aula = 1 hora, 25% de faltas é o limite padrão
                 materia["LimiteFaltas"] = int(carga_int * 0.25)
             except (ValueError, TypeError):
+                print(f"Falha ao converter carga horária '{carga}' da matéria {codigo_disciplina}")
                 materia["LimiteFaltas"] = 16  # fallback padrão
         else:
             materia["LimiteFaltas"] = 16  # fallback padrão
@@ -179,6 +184,28 @@ async def acessar_consulta(page, ano_letivo: str):
     await page.wait_for_selector("#tabelaDeNotas table", timeout=15_000)
 
 
+async def extrair_limite_faltas(page) -> dict:
+    limites = {}
+    try:
+        await page.click("#Notas_-_Faltas")
+        await page.get_by_text("Frequência da Turma").click()
+
+        select = page.locator("#turma")
+        await select.wait_for(timeout=10_000)
+
+        opcoes_disponiveis = await select.locator("option").all_inner_texts()
+        for opcao in opcoes_disponiveis:
+            if '-' in opcao and ':' in opcao:
+                cd_dis = opcao[:opcao.find('-')].strip()
+                carga_horaria = opcao[opcao.find(':')+1:].strip()
+                limites[cd_dis] = carga_horaria
+        print(f"Limites de faltas extraídos (Brutos): {limites}")
+    except Exception as e:
+        print(f"Erro ao extrair limites (Frequência da Turma): {e}")
+    
+    return limites
+
+
 
 async def rodar_extrator(usuario: str = None, senha: str = None, ano_letivo: str = None):
     """
@@ -208,11 +235,15 @@ async def rodar_extrator(usuario: str = None, senha: str = None, ano_letivo: str
         try:
             # 1. autenticação e navegação
             await login_sisav(page, _usuario, _senha)
+            
+            # Extrai os limites de todas as disciplinas de uma vez antes de ir para as notas
+            limites_faltas = await extrair_limite_faltas(page)
+            
             await acessar_consulta(page, _ano_letivo)
 
             # 2. extração de dados
             aluno = await busca_aluno(page)
-            disciplinas = await buscar_disciplinas(page)
+            disciplinas = await buscar_disciplinas(page, limites_faltas)
 
             # 3. persistência e retorno
             salvar_json(disciplinas, aluno)

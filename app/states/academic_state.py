@@ -311,10 +311,9 @@ class AcademicState(rx.State):
                 if d["faltas"] >= limite:
                     # Reprovado por falta tem prioridade absoluta
                     d["status"] = "Reprovado por Falta"
-                elif d.get("em_andamento", True):
-                    # Semestre em curso: recalcula parcialmente
-                    d["status"] = _calc_status(d["media"], d["faltas"], limite)
-                # Semestre encerrado + faltas < limite: mantém status_original do SISAV
+                else:
+                    # Restaura status original do SISAV se faltas < limite
+                    d["status"] = d.get("status_original", d["status"])
                 break
 
     @rx.event
@@ -328,11 +327,8 @@ class AcademicState(rx.State):
                 limite = d.get("limite_faltas", LIMITE_FALTAS_PADRAO)
                 if d["faltas"] >= limite:
                     d["status"] = "Reprovado por Falta"
-                elif d.get("em_andamento", True):
-                    # Semestre em curso: recalcula parcialmente
-                    d["status"] = _calc_status(d["media"], d["faltas"], limite)
                 else:
-                    # Semestre encerrado: restaura status oficial do SISAV
+                    # Restaura status original do SISAV se faltas < limite
                     d["status"] = d.get("status_original", d["status"])
                 break
 

@@ -119,9 +119,12 @@ def faltas_control(item: Disciplina) -> rx.Component:
                         "font-extrabold text-gray-900 text-sm tabular-nums transition-all",
                     ),
                 ),
-                rx.el.span(
-                    "/" + item["limite_faltas"].to(str),
-                    class_name="text-gray-400 text-xs font-semibold tabular-nums",
+                rx.cond(
+                    ~AcademicState.ano_diferente,
+                    rx.el.span(
+                        "/" + item["limite_faltas"].to(str),
+                        class_name="text-gray-400 text-xs font-semibold tabular-nums",
+                    ),
                 ),
                 class_name="min-w-[44px] flex items-baseline justify-center gap-0.5",
             ),
@@ -138,51 +141,56 @@ def faltas_control(item: Disciplina) -> rx.Component:
             ),
             class_name="flex items-center gap-2.5",
         ),
-        rx.el.div(
-            rx.el.div(
-                class_name=rx.cond(
-                    item["faltas"] >= item["limite_faltas"].to(int),
-                    "bg-rose-500 h-1.5 rounded-full transition-all duration-300 ease-out",
-                    rx.cond(
-                        item["faltas"] >= (item["limite_faltas"].to(float) * 0.75).to(int),
-                        "bg-rose-400 h-1.5 rounded-full transition-all duration-300 ease-out",
-                        rx.cond(
-                            item["faltas"] >= (item["limite_faltas"].to(float) * 0.5).to(int),
-                            "bg-amber-400 h-1.5 rounded-full transition-all duration-300 ease-out",
-                            "bg-emerald-500 h-1.5 rounded-full transition-all duration-300 ease-out",
+        rx.cond(
+            ~AcademicState.ano_diferente,
+            rx.fragment(
+                rx.el.div(
+                    rx.el.div(
+                        class_name=rx.cond(
+                            item["faltas"] >= item["limite_faltas"].to(int),
+                            "bg-rose-500 h-1.5 rounded-full transition-all duration-300 ease-out",
+                            rx.cond(
+                                item["faltas"] >= (item["limite_faltas"].to(float) * 0.75).to(int),
+                                "bg-rose-400 h-1.5 rounded-full transition-all duration-300 ease-out",
+                                rx.cond(
+                                    item["faltas"] >= (item["limite_faltas"].to(float) * 0.5).to(int),
+                                    "bg-amber-400 h-1.5 rounded-full transition-all duration-300 ease-out",
+                                    "bg-emerald-500 h-1.5 rounded-full transition-all duration-300 ease-out",
+                                ),
+                            ),
                         ),
+                        style={"width": f"{percent}%"},
+                    ),
+                    class_name=rx.cond(
+                        AcademicState.is_dark,
+                        "w-full bg-gray-800 rounded-full h-1.5 mt-2 overflow-hidden",
+                        "w-full bg-gray-100 rounded-full h-1.5 mt-2 overflow-hidden",
                     ),
                 ),
-                style={"width": f"{percent}%"},
-            ),
-            class_name=rx.cond(
-                AcademicState.is_dark,
-                "w-full bg-gray-800 rounded-full h-1.5 mt-2 overflow-hidden",
-                "w-full bg-gray-100 rounded-full h-1.5 mt-2 overflow-hidden",
-            ),
-        ),
-        rx.el.div(
-            rx.el.span(
-                msg,
-                class_name=rx.cond(
-                    item["faltas"] >= item["limite_faltas"].to(int),
-                    "text-[11px] font-bold text-rose-500",
-                    rx.cond(
-                        item["faltas"] >= (item["limite_faltas"].to(float) * 0.75).to(int),
-                        "text-[11px] font-semibold text-rose-400",
-                        rx.cond(
-                            item["faltas"] >= (item["limite_faltas"].to(float) * 0.5).to(int),
-                            "text-[11px] font-semibold text-amber-500",
-                            "text-[11px] font-semibold text-emerald-500",
+                rx.el.div(
+                    rx.el.span(
+                        msg,
+                        class_name=rx.cond(
+                            item["faltas"] >= item["limite_faltas"].to(int),
+                            "text-[11px] font-bold text-rose-500",
+                            rx.cond(
+                                item["faltas"] >= (item["limite_faltas"].to(float) * 0.75).to(int),
+                                "text-[11px] font-semibold text-rose-400",
+                                rx.cond(
+                                    item["faltas"] >= (item["limite_faltas"].to(float) * 0.5).to(int),
+                                    "text-[11px] font-semibold text-amber-500",
+                                    "text-[11px] font-semibold text-emerald-500",
+                                ),
+                            ),
                         ),
                     ),
+                    rx.el.span(
+                        f"{percent:.0f}%",
+                        class_name="text-[11px] font-bold text-gray-400 tabular-nums",
+                    ),
+                    class_name="flex items-center justify-between mt-1.5",
                 ),
             ),
-            rx.el.span(
-                f"{percent:.0f}%",
-                class_name="text-[11px] font-bold text-gray-400 tabular-nums",
-            ),
-            class_name="flex items-center justify-between mt-1.5",
         ),
         class_name="min-w-[190px]",
     )

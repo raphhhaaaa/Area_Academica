@@ -74,14 +74,14 @@ def summary_cards() -> rx.Component:
         card_stat(
             "Total de Faltas",
             AcademicState.total_faltas.to(str),
-            "Limite é 16 faltas por matéria",
+            "O limite é calculado por: 25% da C.H",
             "calendar-x",
             "text-amber-600",
         ),
         card_stat(
             "Aprovadas",
             AcademicState.aprovadas_count.to(str),
-            "Critério de aprovação: Nota ≥ 7.0",
+            "Critério de aprovação: Nota ≥ 6.0",
             "message_circle_check",
             "text-emerald-600",
         ),

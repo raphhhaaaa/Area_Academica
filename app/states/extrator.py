@@ -230,6 +230,21 @@ async def extrair_horarios_aula(page, codigos_alvo: list) -> dict:
                 linha = linhas.nth(l)
                 colunas = linha.locator("td")
                 
+                # Encontra o semestre (1 ou 2) olhando para o <h2> anterior ao fieldset
+                semestre_raw = await tabela.evaluate("""
+                    el => {
+                        let fieldset = el.closest('fieldset');
+                        if (!fieldset) return '1';
+                        let prev = fieldset.previousElementSibling;
+                        while(prev) {
+                            if(prev.tagName === 'H2') return prev.innerText;
+                            prev = prev.previousElementSibling;
+                        }
+                        return '1';
+                    }
+                """)
+                semestre_num = 1 if "1" in semestre_raw else 2
+                
                 # Certifica de que a linha tem as 8 colunas (hr + 6 dias + hr extra possivel)
                 if await colunas.count() >= 8:
                     horario_raw = await colunas.nth(1).inner_text()
@@ -258,7 +273,8 @@ async def extrair_horarios_aula(page, codigos_alvo: list) -> dict:
                                     horarios[codigo_materia].append({
                                         "dia": dia,
                                         "horario": horario,
-                                        "sala": bloco_sala
+                                        "sala": bloco_sala,
+                                        "semestre": semestre_num
                                     })
 
     except Exception as e:

@@ -103,8 +103,8 @@ def faltas_control(item: Disciplina) -> rx.Component:
                     type="button",
                     class_name=rx.cond(
                         AcademicState.is_dark,
-                        "size-7 flex items-center justify-center rounded-lg border border-gray-750 bg-gray-800 text-gray-300 hover:bg-gray-750 hover:border-gray-600 active:scale-90 transition-all duration-150 shadow-xs",
-                        "size-7 flex items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 hover:border-gray-300 active:scale-90 transition-all duration-150 shadow-xs",
+                        "size-7 flex items-center justify-center rounded-lg border border-red-700/40 bg-red-700/40 text-red-300 hover:bg-red-900 hover:border-red-600 active:scale-90 transition-all duration-150 shadow-xs",
+                        "size-7 flex items-center justify-center rounded-lg border border-red-200 bg-red-100/50 text-red-600 hover:bg-red-300/40 hover:border-red-300 active:scale-90 transition-all duration-150 shadow-xs",
                     ),
                 ),
                 # Placeholder invisível para manter o layout estável
@@ -128,15 +128,20 @@ def faltas_control(item: Disciplina) -> rx.Component:
                 ),
                 class_name="min-w-[44px] flex items-baseline justify-center gap-0.5",
             ),
-            rx.el.button(
-                rx.icon("plus", class_name="h-3.5 w-3.5"),
-                on_click=lambda: AcademicState.incrementar_falta(item["id"]),
-                disabled=(item["faltas"] >= item["limite_faltas"].to(int)) | AcademicState.ano_diferente,
-                type="button",
-                class_name=rx.cond(
-                    AcademicState.is_dark,
-                    "size-7 flex items-center justify-center rounded-lg border border-blue-900 bg-blue-950/40 text-blue-400 hover:bg-blue-900 hover:border-blue-800 active:scale-90 transition-all duration-150 disabled:opacity-30 disabled:cursor-not-allowed shadow-xs",
-                    "size-7 flex items-center justify-center rounded-lg border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 hover:border-blue-300 active:scale-90 transition-all duration-150 disabled:opacity-30 disabled:cursor-not-allowed shadow-xs",
+
+            rx.cond(
+                ~AcademicState.ano_diferente,
+                # botão vísivel apenas quando o ano é igual
+                rx.el.button(
+                    rx.icon("plus", class_name="h-3.5 w-3.5"),
+                    on_click=lambda: AcademicState.incrementar_falta(item["id"]),
+                    disabled=(item["faltas"] >= item["limite_faltas"].to(int)),
+                    type="button",
+                    class_name=rx.cond(
+                        AcademicState.is_dark,
+                        "size-7 flex items-center justify-center rounded-lg border border-blue-900 bg-blue-950/40 text-blue-400 hover:bg-blue-900 hover:border-blue-800 active:scale-90 transition-all duration-150 disabled:opacity-30 disabled:cursor-not-allowed shadow-xs",
+                        "size-7 flex items-center justify-center rounded-lg border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 hover:border-blue-300 active:scale-90 transition-all duration-150 disabled:opacity-30 disabled:cursor-not-allowed shadow-xs",
+                    ),
                 ),
             ),
             class_name="flex items-center gap-2.5",

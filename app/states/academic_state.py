@@ -3,6 +3,7 @@ from typing import TypedDict
 from app.states.extrator import rodar_extrator, CredenciaisInvalidasError, AnoLetivoInvalidoError
 from app.states.config import salvar_credenciais
 from datetime import date
+from pydantic import BaseModel
 
 
 class Disciplina(TypedDict):
@@ -18,7 +19,22 @@ class Disciplina(TypedDict):
     em_andamento: bool  # True quando o semestre ainda está em curso (Situação = Matriculado)
     faltas_originais: int  # Faltas vindas do SISAV — valor mínimo imutável
     status_original: str  # Status oficial do SISAV — nunca é alterado, usado para restaurar
+    horarios: list[dict]
 
+class CelulaHorario(BaseModel):
+    disciplina_id: str = ""
+    disciplina_nome: str = ""
+    sala: str = ""
+    vazio: bool = True
+
+class LinhaHorario(BaseModel):
+    horario: str = ""
+    segunda: CelulaHorario = CelulaHorario()
+    terca: CelulaHorario = CelulaHorario()
+    quarta: CelulaHorario = CelulaHorario()
+    quinta: CelulaHorario = CelulaHorario()
+    sexta: CelulaHorario = CelulaHorario()
+    sabado: CelulaHorario = CelulaHorario()
 
 class Aluno(TypedDict):
     ra: str
@@ -115,6 +131,7 @@ def formatar_dados_sisav(dados_brutos: dict) -> tuple[list, dict]:
             "status": status,
             "status_original": status,  # espelho imutável do status inicial
             "em_andamento": em_andamento,
+            "horarios": dis.get("Horarios", [])
         }
         lista_formatada_disciplina.append(disciplina_formatada)
 
@@ -157,6 +174,9 @@ class AcademicState(rx.State):
     form_senha: str = ""
     show_password: bool = False
 
+    # Sidebar state
+    is_sidebar_open: bool = True
+
     @rx.event
     def toggle_show_password(self):
         self.show_password = not self.show_password
@@ -185,6 +205,10 @@ class AcademicState(rx.State):
     def toggle_theme(self):
         self.is_dark = not self.is_dark
 
+    @rx.event
+    def toggle_sidebar(self):
+        self.is_sidebar_open = not self.is_sidebar_open
+
     @rx.var
     def total_faltas(self) -> int:
         return sum(d["faltas"] for d in self.disciplinas)
@@ -200,6 +224,65 @@ class AcademicState(rx.State):
     @rx.var
     def total_disciplinas(self) -> int:
         return len(self.disciplinas)
+
+    @rx.var
+    def materias_na_grade(self) -> int:
+        return sum(1 for d in self.disciplinas if d["em_andamento"])
+
+    def _gerar_grade(self, semestre_alvo: int) -> list[LinhaHorario]:
+        if not self.disciplinas:
+            return []
+            
+        horarios_unicos = set()
+        for d in self.disciplinas:
+            for h in d.get("horarios", []):
+                if h.get("semestre", 1) == semestre_alvo:
+                    horarios_unicos.add(h.get("horario"))
+                
+        if not horarios_unicos:
+            return []
+            
+        horarios_ordenados = sorted(list(horarios_unicos))
+        linhas = []
+        
+        for horario in horarios_ordenados:
+            linha = LinhaHorario(horario=horario)
+            
+            # Mapeamento do nome do dia para o atributo da classe
+            mapa_dias = {
+                "Segunda": "segunda",
+                "Terça": "terca",
+                "Quarta": "quarta",
+                "Quinta": "quinta",
+                "Sexta": "sexta",
+                "Sábado": "sabado"
+            }
+            
+            for d in self.disciplinas:
+                for h in d.get("horarios", []):
+                    if h.get("semestre", 1) == semestre_alvo and h.get("horario") == horario:
+                        dia_str = h.get("dia")
+                        attr_dia = mapa_dias.get(dia_str)
+                        if attr_dia:
+                            celula = CelulaHorario(
+                                disciplina_id=d.get("id", ""),
+                                disciplina_nome=d.get("nome", ""),
+                                sala=h.get("sala", ""),
+                                vazio=False
+                            )
+                            setattr(linha, attr_dia, celula)
+                            
+            linhas.append(linha)
+            
+        return linhas
+
+    @rx.var
+    def grade_horarios_1(self) -> list[LinhaHorario]:
+        return self._gerar_grade(1)
+
+    @rx.var
+    def grade_horarios_2(self) -> list[LinhaHorario]:
+        return self._gerar_grade(2)
 
     @rx.var
     def aprovadas_count(self) -> int:

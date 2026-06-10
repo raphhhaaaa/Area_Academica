@@ -25,6 +25,7 @@ nixPkgs = [
   "libdrm",
   "alsa-lib",
   "cups",
+  "python312Full",
 ]
 
 [phases.install]

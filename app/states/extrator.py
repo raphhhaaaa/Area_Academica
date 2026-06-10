@@ -1,6 +1,7 @@
 from playwright.async_api import async_playwright
 from app.states.config import INT_FIELDS, DEBUG
 from datetime import date
+from app.states.utils.json_util import salvar_json
 import json
 
 
@@ -106,17 +107,6 @@ async def buscar_disciplinas(page, limites_faltas):
             materias.append(materia) 
     
     return materias
-
-
-def salvar_json(materias, aluno):
-    with open("dados.json", "w", encoding="utf-8") as arquivo:
-        dados = {   ## formata json com campos separados: 'aluno' e 'disciplinas'
-            "aluno": aluno,
-            "disciplinas": materias
-        }
-        json.dump(dados, arquivo, indent=4, ensure_ascii=False)
-
-
 
 class CredenciaisInvalidasError(Exception):
     """Lançada quando o SISAV rejeita as credenciais fornecidas."""

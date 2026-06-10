@@ -1,5 +1,7 @@
 [phases.setup]
 nixPkgs = [
+  "unzip",
+  "bun",
   "chromium",
   "nss",
   "nspr",

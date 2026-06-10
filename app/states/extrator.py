@@ -205,7 +205,66 @@ async def extrair_limite_faltas(page) -> dict:
     
     return limites
 
+async def extrair_horarios_aula(page, codigos_alvo: list) -> dict:
+    horarios = {}
+    try:
+        await page.click("#Consultas")
+        await page.get_by_text("Horário de Aulas").click()
 
+        # Aguarda a estrutura principal de horários ser renderizada
+        await page.wait_for_selector(".horarios-aula", timeout=15000)
+
+        # Localiza TODAS as tabelas de horários, ignorando se é Tarde, Noite ou qual semestre
+        tabelas = page.locator("table.horario-aula")
+        
+        count_tabelas = await tabelas.count()
+        
+        for t in range(count_tabelas):
+            tabela = tabelas.nth(t)
+            
+            # Pegando todas as linhas do corpo da tabela
+            linhas = tabela.locator("tbody tr")
+            count_linhas = await linhas.count()
+            
+            for l in range(count_linhas):
+                linha = linhas.nth(l)
+                colunas = linha.locator("td")
+                
+                # Certifica de que a linha tem as 8 colunas (hr + 6 dias + hr extra possivel)
+                if await colunas.count() >= 8:
+                    horario_raw = await colunas.nth(1).inner_text()
+                    horario = horario_raw.replace('\n', ' - ').strip()
+                    
+                    dias = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"]
+                    
+                    for i_dia, dia in enumerate(dias):
+                        celula_texto = await colunas.nth(i_dia + 2).inner_text()
+                        celula_texto = celula_texto.strip()
+                        
+                        if celula_texto:
+                            partes = celula_texto.split('\n')
+                            if len(partes) >= 2:
+                                codigo_turma = partes[0].strip()
+                                bloco_sala = partes[1].strip()
+                                
+                                # Pega só os números antes do hífen (ex: "9897")
+                                codigo_materia = codigo_turma.split('-')[0].strip()
+                                
+                                # Se o código encontrado for uma das matérias que o aluno tem na grade atual
+                                if codigo_materia in codigos_alvo:
+                                    if codigo_materia not in horarios:
+                                        horarios[codigo_materia] = []
+                                        
+                                    horarios[codigo_materia].append({
+                                        "dia": dia,
+                                        "horario": horario,
+                                        "sala": bloco_sala
+                                    })
+
+    except Exception as e:
+        print(f"Erro ao extrair horários: {e}")
+        
+    return horarios
 
 async def rodar_extrator(usuario: str = None, senha: str = None, ano_letivo: str = None):
     """
@@ -244,6 +303,14 @@ async def rodar_extrator(usuario: str = None, senha: str = None, ano_letivo: str
             # 2. extração de dados
             aluno = await busca_aluno(page)
             disciplinas = await buscar_disciplinas(page, limites_faltas)
+
+            # Extração de horários de aula para as disciplinas encontradas
+            codigos_alvo = [d.get("Código", "") for d in disciplinas if d.get("Código")]
+            horarios = await extrair_horarios_aula(page, codigos_alvo)
+            
+            for d in disciplinas:
+                codigo = d.get("Código", "")
+                d["Horarios"] = horarios.get(codigo, [])
 
             # 3. persistência e retorno
             salvar_json(disciplinas, aluno)

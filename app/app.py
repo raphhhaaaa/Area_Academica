@@ -124,6 +124,14 @@ app = rx.App(
             href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap",
             rel="stylesheet",
         ),
+        rx.el.link(
+            rel="manifest",
+            href="/manifest.json"
+        ),
+        rx.el.meta(
+            name="theme-color",
+            content="#2563eb"
+        )
     ],
 )
 app.add_page(index, route="/")

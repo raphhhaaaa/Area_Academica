@@ -100,8 +100,8 @@ def sidebar(current_page: str = "dashboard") -> rx.Component:
                     on_click=AcademicState.toggle_sidebar,
                     class_name=rx.cond(
                         AcademicState.is_dark,
-                        "p-1 rounded-full hover:bg-gray-800 transition-colors absolute -right-3 top-5 bg-gray-950 border border-gray-800 hidden md:flex items-center justify-center z-10 shadow-sm",
-                        "p-1 rounded-full hover:bg-gray-100 transition-colors absolute -right-3 top-5 bg-white border border-gray-200 hidden md:flex items-center justify-center z-10 shadow-sm"
+                        "p-1 rounded-full hover:bg-gray-800 transition-colors absolute right-4 md:-right-3 top-5 bg-gray-950 border border-gray-800 flex items-center justify-center z-10 shadow-sm",
+                        "p-1 rounded-full hover:bg-gray-100 transition-colors absolute right-4 md:-right-3 top-5 bg-white border border-gray-200 flex items-center justify-center z-10 shadow-sm"
                     )
                 ),
                 class_name="flex items-center justify-between p-4 relative min-h-[72px]"
@@ -156,7 +156,7 @@ def sidebar(current_page: str = "dashboard") -> rx.Component:
         ),
         class_name=rx.cond(
             AcademicState.is_sidebar_open,
-            "w-64 shrink-0 h-screen sticky top-0 transition-all duration-300 z-40 hidden md:block",
-            "w-20 shrink-0 h-screen sticky top-0 transition-all duration-300 z-40 hidden md:block"
+            "w-64 shrink-0 h-screen fixed md:sticky top-0 left-0 transition-all duration-300 z-50 translate-x-0",
+            "w-64 md:w-20 shrink-0 h-screen fixed md:sticky top-0 left-0 transition-all duration-300 z-50 -translate-x-full md:translate-x-0"
         )
     )

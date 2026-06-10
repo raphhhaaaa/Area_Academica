@@ -5,6 +5,15 @@ def header_section(title: str, subtitle: str) -> rx.Component:
     return rx.el.div(
         rx.el.div(
             rx.el.div(
+                rx.el.button(
+                    rx.icon("menu", class_name=rx.cond(
+                        AcademicState.is_dark,
+                        "h-6 w-6 text-gray-200",
+                        "h-6 w-6 text-gray-800"
+                    )),
+                    on_click=AcademicState.toggle_sidebar,
+                    class_name="md:hidden p-2 -ml-2 rounded-xl transition-all mr-2"
+                ),
                 rx.el.span(
                     "Portal do Estudante",
                     class_name=rx.cond(

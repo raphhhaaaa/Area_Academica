@@ -111,7 +111,7 @@ def login_page() -> rx.Component:
             ),
             rx.el.div(
                 rx.icon("shield-check", class_name="h-4 w-4 text-emerald-500"),
-                rx.el.span("Conexão Segura e Criptografada", class_name="text-sm text-gray-400"),
+                rx.el.span(" dev <", class_name="text-sm text-gray-400"),
                 class_name="flex items-center justify-center gap-2 pb-8"
             ),
             class_name="min-h-screen flex flex-col justify-between"

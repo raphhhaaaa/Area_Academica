@@ -199,8 +199,8 @@ class AcademicState(rx.State):
 
     @rx.var
     def get_ra_aluno(self) -> str:
-        ra = self.aluno.get("ra", "")
-        return f"Matrícula: #{ra}" if ra else "Sem matrícula"
+        ra = self.aluno.get("ra", "")[2:]
+        return f"RA: {ra}" if ra else "Sem matrícula"
 
     @rx.var
     def tem_dados(self) -> bool:

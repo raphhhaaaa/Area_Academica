@@ -269,13 +269,29 @@ def discipline_list() -> rx.Component:
         rx.el.div(
             rx.el.div(
                 rx.el.div(
-                    rx.el.h2(
-                        "Desempenho Acadêmico",
-                        class_name=rx.cond(
-                            AcademicState.is_dark,
-                            "text-xl font-bold text-gray-100 tracking-tight",
-                            "text-xl font-bold text-gray-900 tracking-tight",
+                    rx.el.div(
+                        rx.el.h2(
+                            "Desempenho Acadêmico",
+                            class_name=rx.cond(
+                                AcademicState.is_dark,
+                                "text-xl font-bold text-gray-100 tracking-tight",
+                                "text-xl font-bold text-gray-900 tracking-tight",
+                            ),
                         ),
+                        rx.cond(
+                            AcademicState.ano_letivo != "",
+                            rx.el.span(
+                                "Ano: ",
+                                AcademicState.ano_letivo,
+                                class_name=rx.cond(
+                                    AcademicState.is_dark,
+                                    "px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-900/50 text-blue-300 border border-blue-800/50",
+                                    "px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700 border border-blue-200"
+                                )
+                            ),
+                            rx.el.div()
+                        ),
+                        class_name="flex items-center gap-3"
                     ),
                     rx.el.p(
                         "Visão geral de notas, faltas e situação atual do semestre",

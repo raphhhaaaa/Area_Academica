@@ -1,5 +1,9 @@
 import reflex as rx
 from typing import TypedDict
+import json
+from sqlmodel import select
+from app.models import PerfilAcademico
+from app.security import encrypt_password, decrypt_password
 from app.states.extrator import rodar_extrator, CredenciaisInvalidasError, AnoLetivoInvalidoError
 from app.states.config import salvar_credenciais
 from datetime import date
@@ -106,7 +110,8 @@ def formatar_dados_sisav(dados_brutos: dict) -> tuple[list, dict]:
         nota2 = lista_notas[1].get("Nota", 0.0) if len(lista_notas) > 1 else 0.0
         nota3 = lista_notas[2].get("Nota", 0.0) if len(lista_notas) > 2 else 0.0
 
-        faltas = int(dis.get('Faltas', 0))
+        faltas = int(dis.get('FaltasManuais', dis.get('Faltas', 0)))
+        faltas_originais = int(dis.get('FaltasOriginais', dis.get('Faltas', 0)))
         limite = int(dis.get('LimiteFaltas', LIMITE_FALTAS_PADRAO))
 
         media = 0.0
@@ -122,7 +127,7 @@ def formatar_dados_sisav(dados_brutos: dict) -> tuple[list, dict]:
             "id": dis.get("Código", "S/N"),
             "nome": dis.get("Disciplina", "Desconhecida"),
             "faltas": faltas,
-            "faltas_originais": faltas,
+            "faltas_originais": faltas_originais,
             "limite_faltas": limite,
             "nota1": float(nota1),
             "nota2": float(nota2),
@@ -186,7 +191,7 @@ class AcademicState(rx.State):
     status_filter: str = "Todas"  # "Todas", "Aprovado", "Exame", "Reprovado"
 
     # Theme state
-    is_dark: bool = False
+    is_dark: bool = True
 
     @rx.var
     def get_nome_aluno(self) -> str:
@@ -319,61 +324,139 @@ class AcademicState(rx.State):
         self.error_message = ""
 
     @rx.event
-    async def handle_submit(self, form_data: dict):
-        """Recebe credenciais do formulário, dispara o scraping e salva no .env se bem-sucedido."""
-        usuario = form_data.get("nome", "").strip()
+    async def handle_login(self, form_data: dict):
+        usuario = form_data.get("usuario", "").strip()
         senha = form_data.get("senha", "")
-        ano = form_data.get("ano", "")
-
-        if not usuario:
-            self.error_message = "Por favor, preencha o campo de Usuário."
-            return
-
-        if not senha:
-            self.error_message = "Por favor, preencha o campo de Senha."
+        
+        if not usuario or not senha:
+            self.error_message = "Por favor, preencha RA e Senha."
             return
 
         self.error_message = ""
         self.is_loading = True
-        yield  # Flush imediato: envia is_loading=True ao frontend antes do Playwright rodar
+        yield
 
         try:
-            self.ano_letivo = ano  # Atualiza o ano letivo selecionado
+            with rx.session() as sessao:
+                perfil = sessao.exec(select(PerfilAcademico).where(PerfilAcademico.ra == usuario)).first()
+                if perfil:
+                    senha_salva = decrypt_password(perfil.senha_criptografada)
+                    if senha_salva == senha:
+                        # Login bem-sucedido via banco local
+                        dados_brutos = json.loads(perfil.dados_json)
+                        disciplinas, aluno = formatar_dados_sisav(dados_brutos)
+                        self.disciplinas = disciplinas
+                        self.aluno = aluno
+                        self.form_usuario = usuario
+                        self.form_senha = "" # Limpar senha do form em memória
+                        self.is_loading = False
+                        yield rx.redirect("/dashboard")
+                        return
+                    else:
+                        # Senha não confere com o banco local
+                        self.error_message = "Credenciais inválidas no banco de dados local."
+                        self.is_loading = False
+                        return
+                        
+            # Se chegou aqui, não tem perfil, primeira extração
+            self.ano_letivo = str(date.today().year)
             dados_brutos = await rodar_extrator(
                 usuario=usuario,
                 senha=senha,
-                ano_letivo=form_data.get("ano", "").strip() or None,
+                ano_letivo=None,
             )
+            
+            with rx.session() as sessao:
+                perfil = PerfilAcademico(
+                    ra=usuario, 
+                    senha_criptografada=encrypt_password(senha),
+                    dados_json=json.dumps(dados_brutos)
+                )
+                sessao.add(perfil)
+                sessao.commit()
+                
+            disciplinas, aluno = formatar_dados_sisav(dados_brutos)
+            self.disciplinas = disciplinas
+            self.aluno = aluno
+            self.form_usuario = usuario
+            self.form_senha = ""
+            
+            yield rx.redirect("/dashboard")
+
+        except CredenciaisInvalidasError as e:
+            self.error_message = str(e)
+        except Exception as e:
+            self.error_message = f"Erro inesperado: {str(e)[:120]}"
+        finally:
+            self.is_loading = False
+
+    @rx.event
+    async def handle_sync(self, form_data: dict):
+        ano = form_data.get("ano", "").strip()
+        usuario = self.form_usuario
+
+        if not usuario:
+            self.error_message = "Usuário não logado. Por favor, volte ao login."
+            return
+
+        self.error_message = ""
+        self.is_loading = True
+        yield
+
+        try:
+            # Recupera senha criptografada do banco
+            with rx.session() as sessao:
+                perfil = sessao.exec(select(PerfilAcademico).where(PerfilAcademico.ra == usuario)).first()
+                if not perfil:
+                    raise Exception("Perfil não encontrado no banco de dados.")
+                senha = decrypt_password(perfil.senha_criptografada)
+
+            self.ano_letivo = ano
+            dados_brutos = await rodar_extrator(
+                usuario=usuario,
+                senha=senha,
+                ano_letivo=ano or None,
+            )
+            
+            with rx.session() as sessao:
+                perfil = sessao.exec(select(PerfilAcademico).where(PerfilAcademico.ra == usuario)).first()
+                if perfil:
+                    perfil.dados_json = json.dumps(dados_brutos)
+                    sessao.commit()
+                
             disciplinas, aluno = formatar_dados_sisav(dados_brutos)
             self.disciplinas = disciplinas
             self.aluno = aluno
             self.show_modal = False
-            # Só salva credenciais no .env após login bem-sucedido
-            try:
-                salvar_credenciais(usuario, senha)
-            except Exception as e:
-                print(f"Aviso: não foi possível salvar credenciais no .env: {e}")
+            
+            yield rx.toast.success(f"Dados atualizados com sucesso (Ano: {ano or 'atual'})", duration=4000)
 
-            yield rx.toast.success(
-                f"Dados de {aluno.get('nome', 'Aluno')} sincronizados com sucesso!",
-                duration=4000,
-            )
         except CredenciaisInvalidasError as e:
-            # Erro de credenciais: mantém o modal aberto com mensagem clara
-            self.error_message = str(e)
+            self.error_message = "A senha do portal foi alterada. Atualize seu login."
         except AnoLetivoInvalidoError as e:
-            # Ano não disponível: mantém modal aberto com mensagem clara
             self.error_message = str(e)
         except Exception as e:
-            # Erro inesperado (rede, timeout, etc.)
-            msg = str(e)
-            if "Timeout" in msg or "timeout" in msg:
-                self.error_message = "Tempo esgotado ao conectar ao SISAV. Verifique sua internet e tente novamente."
-            else:
-                self.error_message = f"Erro inesperado: {msg[:120]}"
-            yield rx.toast.error(self.error_message, duration=5000)
+            self.error_message = f"Erro ao sincronizar: {str(e)[:120]}"
         finally:
             self.is_loading = False
+
+    @rx.event
+    def carregar_do_banco(self, ra: str):
+        """Tenta buscar os dados de um aluno direto do banco SQLite sem precisar rodar o scraper."""
+        if not ra:
+            return
+            
+        with rx.session() as sessao:
+            perfil = sessao.exec(select(PerfilAcademico).where(PerfilAcademico.ra == ra)).first()
+            if perfil:
+                dados_brutos = json.loads(perfil.dados_json)
+                disciplinas, aluno = formatar_dados_sisav(dados_brutos)
+                self.disciplinas = disciplinas
+                self.aluno = aluno
+                self.form_usuario = ra
+                return rx.toast.success("Dados resgatados do banco de dados local!", duration=3000)
+            else:
+                return rx.toast.warning("Usuário não encontrado no banco. Sincronize com o SISAV.", duration=3000)
 
     @rx.event
     def remover_disciplina(self, disc_id: str):
@@ -397,6 +480,7 @@ class AcademicState(rx.State):
                 else:
                     # Restaura status original do SISAV se faltas < limite
                     d["status"] = d.get("status_original", d["status"])
+                self._update_db_faltas(disc_id, d["faltas"])
                 break
 
     @rx.event
@@ -413,7 +497,26 @@ class AcademicState(rx.State):
                 else:
                     # Restaura status original do SISAV se faltas < limite
                     d["status"] = d.get("status_original", d["status"])
+                self._update_db_faltas(disc_id, d["faltas"])
                 break
+
+    def _update_db_faltas(self, disc_id: str, new_faltas: int):
+        """Atualiza a quantidade de faltas manuais diretamente no banco de dados"""
+        if not self.form_usuario:
+            return
+            
+        with rx.session() as sessao:
+            perfil = sessao.exec(select(PerfilAcademico).where(PerfilAcademico.ra == self.form_usuario)).first()
+            if perfil:
+                dados_brutos = json.loads(perfil.dados_json)
+                for dis in dados_brutos.get("disciplinas", []):
+                    if str(dis.get("Código", "")) == disc_id:
+                        if "FaltasOriginais" not in dis:
+                            dis["FaltasOriginais"] = dis.get("Faltas", 0)
+                        dis["FaltasManuais"] = new_faltas
+                        break
+                perfil.dados_json = json.dumps(dados_brutos)
+                sessao.commit()
 
     @rx.var
     def ano_diferente(self) -> bool:
@@ -421,3 +524,15 @@ class AcademicState(rx.State):
             current_year = date.today().year
             return int(self.ano_letivo) != date.today().year
         return False
+
+    @rx.event
+    def logout(self):
+        """Limpa o estado da sessão atual e redireciona para o login."""
+        self.form_usuario = ""
+        self.form_senha = ""
+        self.disciplinas = []
+        self.aluno = {}
+        self.ano_letivo = str(date.today().year)
+        self.is_loading = False
+        return rx.redirect("/")
+

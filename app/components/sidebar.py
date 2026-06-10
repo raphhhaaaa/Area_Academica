@@ -109,9 +109,42 @@ def sidebar(current_page: str = "dashboard") -> rx.Component:
             
             # Navegação
             rx.el.nav(
-                sidebar_item("layout-dashboard", "Dashboard", "/", is_active=(current_page == "dashboard")),
+                sidebar_item("layout-dashboard", "Dashboard", "/dashboard", is_active=(current_page == "dashboard")),
                 sidebar_item("calendar", "Horário de Aulas", "/horarios", is_active=(current_page == "horarios")),
-                class_name="flex flex-col gap-1.5 px-3 mt-4"
+            ),
+            
+            # Botão de Sair no rodapé da sidebar
+            rx.el.div(
+                rx.el.button(
+                    rx.icon(
+                        "log-out", 
+                        class_name=rx.cond(
+                            AcademicState.is_dark,
+                            "h-5 w-5 text-red-400 group-hover:text-red-300 transition-colors shrink-0",
+                            "h-5 w-5 text-red-500 group-hover:text-red-600 transition-colors shrink-0"
+                        )
+                    ),
+                    rx.cond(
+                        AcademicState.is_sidebar_open,
+                        rx.el.span(
+                            "Sair",
+                            class_name=rx.cond(
+                                AcademicState.is_dark,
+                                "font-medium text-red-400 group-hover:text-red-300 transition-colors whitespace-nowrap",
+                                "font-medium text-red-600 group-hover:text-red-700 transition-colors whitespace-nowrap"
+                            )
+                        ),
+                        rx.fragment()
+                    ),
+                    on_click=AcademicState.logout,
+                    title=rx.cond(~AcademicState.is_sidebar_open, "Sair", ""),
+                    class_name=rx.cond(
+                        AcademicState.is_dark,
+                        "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-red-950/30 border border-transparent hover:border-red-900/30 transition-all group cursor-pointer mt-auto",
+                        "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-red-50 border border-transparent hover:border-red-100 transition-all group cursor-pointer mt-auto"
+                    )
+                ),
+                class_name="px-3 mt-auto mb-4"
             ),
             
             class_name=rx.cond(

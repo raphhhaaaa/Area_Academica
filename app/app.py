@@ -1,4 +1,5 @@
 import reflex as rx
+import app.models
 from app.states.academic_state import AcademicState
 from app.components.summary_cards import summary_cards
 from app.components.discipline_list import discipline_list
@@ -6,6 +7,7 @@ from app.components.add_modal import add_modal
 from app.components.sidebar import sidebar
 from app.components.header import header_section
 from app.pages.horarios_page import horarios_page
+from app.pages.login_page import login_page
 
 
 def index() -> rx.Component:
@@ -53,5 +55,6 @@ app = rx.App(
         )
     ],
 )
-app.add_page(index, route="/")
+app.add_page(login_page, route="/")
+app.add_page(index, route="/dashboard")
 app.add_page(horarios_page, route="/horarios")

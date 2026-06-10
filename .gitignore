@@ -13,6 +13,24 @@ venv/
 node_modules/
 /app/__pycache__/
 .env
-*.json
+dados.json
 /CONTEXTO_SESSAO.md
 /artifacts
+.secret.key
+
+# Arquivos de log                                                                                                                                                                                                                            
+*.log                                                                                                                                                                                                                                        
+reflex.log                                                                                                                                                                                                                                   
+                                                                                                                                                                                                                                                
+# Pastas e arquivos do SO                                                                                                                                                                                                                    
+.DS_Store                                                                                                                                                                                                                                    
+Thumbs.db                                                                                                                                                                                                                                    
+                                                                                                                                                                                                                                                
+# Ambiente de desenvolvimento / IDEs                                                                                                                                                                                                         
+.vscode/                                                                                                                                                                                                                                     
+.idea/                                                                                                                                                                                                                                       
+                                                                                                                                                                                                                                                
+# Scripts de testes isolados que vc criou                                                                                                                                                                                                    
+testar_extrator.py                                                                                                                                                                                                                           
+test_scraper.py                                                                                                                                                                                                                              
+test_horarios.py

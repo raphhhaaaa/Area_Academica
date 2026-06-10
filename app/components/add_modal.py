@@ -34,7 +34,7 @@ def add_modal() -> rx.Component:
                                 ),
                             ),
                             rx.el.p(
-                                "Insira suas credenciais do portal acadêmico",
+                                "Extraia seus dados do portal acadêmico",
                                 class_name="text-xs text-gray-400 mt-0.5",
                             ),
                             class_name="flex flex-col",
@@ -61,78 +61,7 @@ def add_modal() -> rx.Component:
                 # Formulário
                 rx.el.form(
                     rx.el.div(
-                        # Campo Usuário
-                        rx.el.div(
-                            rx.el.label(
-                                "Usuário (RA)",
-                                class_name=rx.cond(
-                                    AcademicState.is_dark,
-                                    "block text-sm font-semibold text-gray-300 mb-2",
-                                    "block text-sm font-semibold text-gray-700 mb-2",
-                                ),
-                            ),
-                            rx.el.div(
-                                rx.icon(
-                                    "user",
-                                    class_name="absolute left-3.5 top-3 h-4 w-4 text-gray-400 pointer-events-none",
-                                ),
-                                rx.el.input(
-                                    type="text",
-                                    name="nome",
-                                    placeholder="Ex: ra147190",
-                                    auto_complete="username",
-                                    disabled=AcademicState.is_loading,
-                                    class_name=rx.cond(
-                                        AcademicState.is_dark,
-                                        "pl-10 w-full px-4 py-2.5 bg-gray-800 border border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 text-sm text-gray-100 placeholder-gray-500 transition-all disabled:opacity-50",
-                                        "pl-10 w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm text-gray-900 placeholder-gray-400 transition-all disabled:opacity-50",
-                                    ),
-                                ),
-                                class_name="relative",
-                            ),
-                            class_name="mb-4",
-                        ),
 
-                        # Campo Senha
-                        rx.el.div(
-                            rx.el.label(
-                                "Senha",
-                                class_name=rx.cond(
-                                    AcademicState.is_dark,
-                                    "block text-sm font-semibold text-gray-300 mb-2",
-                                    "block text-sm font-semibold text-gray-700 mb-2",
-                                ),
-                            ),
-                            rx.el.div(
-                                rx.icon(
-                                    "lock",
-                                    class_name="absolute left-3.5 top-3 h-4 w-4 text-gray-400 pointer-events-none",
-                                ),
-                                rx.el.input(
-                                    type=rx.cond(AcademicState.show_password, "text", "password"),
-                                    name="senha",
-                                    placeholder="Sua senha do portal SISAV",
-                                    auto_complete="current-password",
-                                    disabled=AcademicState.is_loading,
-                                    class_name=rx.cond(
-                                        AcademicState.is_dark,
-                                        "pl-10 pr-10 w-full py-2.5 bg-gray-800 border border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 text-sm text-gray-100 placeholder-gray-500 transition-all disabled:opacity-50",
-                                        "pl-10 pr-10 w-full py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm text-gray-900 placeholder-gray-400 transition-all disabled:opacity-50",
-                                    ),
-                                ),
-                                rx.el.button(
-                                    rx.icon(
-                                        rx.cond(AcademicState.show_password, "eye-off", "eye"),
-                                        class_name="h-4 w-4 text-gray-400"
-                                    ),
-                                    type="button",
-                                    on_click=AcademicState.toggle_show_password,
-                                    class_name="absolute right-3.5 top-3.5 hover:opacity-70 transition-opacity",
-                                ),
-                                class_name="relative",
-                            ),
-                            class_name="mb-4",
-                        ),
 
                         # Campo Ano letivo (opcional)
                         rx.el.div(
@@ -140,8 +69,8 @@ def add_modal() -> rx.Component:
                                 "Ano Letivo (opcional)",
                                 class_name=rx.cond(
                                     AcademicState.is_dark,
-                                    "block text-sm font-semibold text-gray-300 mb-2",
-                                    "block text-sm font-semibold text-gray-700 mb-2",
+                                    "block text-sm font-semibold text-gray-300 mb-2 mt-3",
+                                    "block text-sm font-semibold text-gray-700 mb-2 mt-3",
                                 ),
                             ),
                             rx.el.div(
@@ -171,15 +100,22 @@ def add_modal() -> rx.Component:
                                 ),
                                 class_name="relative",
                             ),
-                            class_name="mb-2",
+                            class_name="mb-3",
                         ),
 
                         # Aviso de segurança
                         rx.el.p(
-                            rx.icon("shield-check", class_name="h-3.5 w-3.5 inline mr-1 text-emerald-500"),
-                            "Suas credenciais são salvas localmente e nunca enviadas para terceiros.",
-                            class_name="text-[11px] text-gray-400 mb-5 leading-relaxed",
+                            rx.icon("info", class_name="h-5 w-5 inline mr-1 text-blue-500"),
+                            "NOTA: Isso fará com que o sistema acesse o portal com as credenciais já salvas para baixar os dados atualizados.",
+                            class_name="text-[12px] text-gray-400 mb-3 leading-relaxed",
                         ),
+
+                        rx.el.p(
+                            rx.icon("message_square_warning", class_name="h-5 w-5 inline mr-1 text-blue-500"),
+                            "ATENÇÃO: as faltas adicionadas manualmente serão sobrescritas pelas faltas provindas do sisav!",
+                            class_name="text-[12px] text-red-400 mb-5 leading-relaxed",
+                        ),
+                            
 
                         # Mensagem de erro
                         rx.cond(
@@ -246,8 +182,7 @@ def add_modal() -> rx.Component:
                                         class_name="flex items-center gap-2",
                                     ),
                                     rx.el.div(
-                                        rx.icon("cloud_sync", class_name="h-4 w-4"),
-                                        "Fazer login e sincronizar",
+                                        "Sincronizar",
                                         class_name="flex items-center gap-2",
                                     ),
                                 ),
@@ -262,7 +197,7 @@ def add_modal() -> rx.Component:
                             ),
                         ),
                     ),
-                    on_submit=AcademicState.handle_submit,
+                    on_submit=AcademicState.handle_sync,
                     reset_on_submit=False,
                 ),
 

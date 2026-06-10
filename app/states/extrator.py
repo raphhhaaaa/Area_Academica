@@ -174,7 +174,7 @@ async def acessar_consulta(page, ano_letivo: str):
     opcoes_valores = await select.evaluate("el => [...el.options].map(o => o.value)")
 
     if ano_letivo not in opcoes_valores:
-        anos_str = ", ".join(v for v in opcoes_valores if v)  # exclui option vazia
+        anos_str = ", ".join(v for v in opcoes_valores[1:] if v)  # exclui option vazia
         raise AnoLetivoInvalidoError(
             f"O ano {ano_letivo} não está disponível para sua matrícula. "
             f"Anos disponíveis: {anos_str}."

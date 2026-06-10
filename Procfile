@@ -1,1 +1,1 @@
-web: reflex db migrate && reflex run --env prod --backend-only
+web: reflex db migrate && reflex run --env prod --backend-port $PORT

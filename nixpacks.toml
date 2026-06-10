@@ -38,4 +38,4 @@ cmds = [
 ]
 
 [start]
-cmd = "reflex db migrate && reflex run --env prod --backend-only"
+cmd = "reflex db migrate && reflex run --env prod --backend-port $PORT"

@@ -25,17 +25,16 @@ nixPkgs = [
   "libdrm",
   "alsa-lib",
   "cups",
-  "python312Full",
 ]
 
-[phases.install]
-cmds = [
-  "pip install -r requirements.txt",
-  "playwright install chromium --with-deps",
-]
+# Removemos a sobrescrita do [phases.install].
+# Assim, o Railway cuida sozinho de baixar o Python, configurar o venv e rodar o `pip install -r requirements.txt`.
 
 [phases.build]
-cmds = ["reflex export --frontend-only --no-zip"]
+cmds = [
+  "playwright install chromium --with-deps",
+  "reflex export --frontend-only --no-zip"
+]
 
 [start]
 cmd = "reflex db migrate && reflex run --env prod --backend-only"

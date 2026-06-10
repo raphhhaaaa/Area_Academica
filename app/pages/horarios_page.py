@@ -194,15 +194,6 @@ def horarios_page() -> rx.Component:
                     title="Horário de Aulas",
                     subtitle="Visualize sua grade de horários da semana.",
                 ),
-                rx.el.span(
-                                rx.icon("shield_alert", class_name="h-4 w-4 inline mr-1 text-red-500"),
-                                "(APENAS PARA ANO ATUAL)",
-                                class_name=rx.cond(
-                                    AcademicState.is_dark,
-                                    "px-2.5 py-1.5 rounded-full text-xs font-medium bg-blue-900/50 text-blue-300 border border-blue-800/50",
-                                    "px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700 border border-blue-200"
-                                )
-                            ),
                 horarios_table("1º Semestre", AcademicState.grade_horarios_1),
                 horarios_table("2º Semestre", AcademicState.grade_horarios_2),
                 class_name="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full",

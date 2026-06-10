@@ -531,7 +531,7 @@ class AcademicState(rx.State):
         self.form_usuario = ""
         self.form_senha = ""
         self.disciplinas = []
-        self.aluno = {}
+        self.aluno = {"ra": "", "nome": "", "curso": "", "turno": "", "campus": "", "serie": "", "sit_acad": ""}
         self.ano_letivo = str(date.today().year)
         self.is_loading = False
         return rx.redirect("/")

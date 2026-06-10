@@ -110,7 +110,8 @@ def sidebar(current_page: str = "dashboard") -> rx.Component:
             # Navegação
             rx.el.nav(
                 sidebar_item("layout-dashboard", "Dashboard", "/dashboard", is_active=(current_page == "dashboard")),
-                sidebar_item("calendar", "Horário de Aulas", "/horarios", is_active=(current_page == "horarios")),
+                ## o aluno so tem acesso ao calendario se estiver matriculado no semestre atual, ou seja, se o ano selecionado for igual ao ano atual
+                rx.cond(~AcademicState.ano_diferente, sidebar_item("calendar", "Horário de Aulas", "/horarios", is_active=(current_page == "horarios"))),
             ),
             
             # Botão de Sair no rodapé da sidebar

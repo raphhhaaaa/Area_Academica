@@ -386,7 +386,9 @@ class AcademicState(rx.State):
         except CredenciaisInvalidasError as e:
             self.error_message = str(e)
         except Exception as e:
-            self.error_message = f"Erro inesperado: {str(e)[:120]}"
+            import traceback
+            traceback.print_exc()
+            self.error_message = f"Erro inesperado: {str(e)}"
         finally:
             self.is_loading = False
 
@@ -436,7 +438,9 @@ class AcademicState(rx.State):
         except AnoLetivoInvalidoError as e:
             self.error_message = str(e)
         except Exception as e:
-            self.error_message = f"Erro ao sincronizar: {str(e)[:120]}"
+            import traceback
+            traceback.print_exc()
+            self.error_message = f"Erro ao sincronizar: {str(e)}"
         finally:
             self.is_loading = False
 

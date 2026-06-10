@@ -8,7 +8,3 @@ class PerfilAcademico(SQLModel, table=True):
     ra: str = Field(unique=True)
     senha_criptografada: str = ""
     dados_json: str
-
-
-# Registra o modelo no Reflex para que as migrations (reflex db migrate) funcionem
-ModelRegistry.register(PerfilAcademico)

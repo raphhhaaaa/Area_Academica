@@ -13,4 +13,5 @@ config = rx.Config(
         rx.plugins.SitemapPlugin(),
     ],
     db_url=_db_url,
+    show_built_with_reflex=False,
 )

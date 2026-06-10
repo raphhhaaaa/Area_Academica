@@ -13,8 +13,8 @@ def login_page() -> rx.Component:
                             rx.icon("graduation-cap", class_name="h-10 w-10 text-blue-600 dark:text-blue-500"),
                             class_name="w-16 h-16 bg-blue-100 dark:bg-blue-900/50 rounded-2xl flex items-center justify-center mb-6 shadow-sm mx-auto"
                         ),
-                        rx.el.h2("Área Acadêmica", class_name="text-2xl font-bold text-gray-900 dark:text-white text-center"),
-                        rx.el.p("Acesse seu portal e controle sua vida acadêmica.", class_name="text-gray-500 dark:text-gray-400 text-sm text-center mt-2"),
+                        rx.el.h2("Área Acadêmica - UEM", class_name="text-2xl font-bold text-gray-900 dark:text-white text-center"),
+                        rx.el.p("Acesse e controle sua vida acadêmica.", class_name="text-gray-500 dark:text-gray-400 text-sm text-center mt-2"),
                         class_name="mb-8"
                     ),
                     

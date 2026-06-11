@@ -49,6 +49,7 @@ reflex-hosting-cli==0.1.66
 requests==2.34.2
 rich==14.3.4
 simple-websocket==1.1.0
+psycopg2-binary==2.9.10
 SQLAlchemy==2.0.50
 sqlmodel==0.0.38
 starlette==1.1.0

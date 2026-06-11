@@ -8,6 +8,8 @@ from app.components.sidebar import sidebar
 from app.components.header import header_section
 from app.pages.horarios_page import horarios_page
 from app.pages.login_page import login_page
+from app.pages.admin_page import admin_page
+from app.states.admin_state import AdminState
 
 
 def index() -> rx.Component:
@@ -58,3 +60,4 @@ app = rx.App(
 app.add_page(login_page, route="/")
 app.add_page(index, route="/dashboard")
 app.add_page(horarios_page, route="/horarios")
+app.add_page(admin_page, route="/admin-uem", on_load=[AcademicState.verificar_admin, AdminState.check_systems])

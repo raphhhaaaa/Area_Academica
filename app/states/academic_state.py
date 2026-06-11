@@ -468,6 +468,19 @@ class AcademicState(rx.State):
             else:
                 return rx.toast.warning("Usuário não encontrado no banco. Sincronize com o SISAV.", duration=3000)
 
+    @rx.var
+    def contar_usuarios_registrados(self) -> int:
+        """Conta quantos usuários registrados existem no banco"""
+        try: 
+            with rx.session() as sessao:
+                import sqlmodel as sm
+                # O sessao.exec vai ao banco rodar o select, e o .one() pega o número exato
+                usuarios = sessao.exec(select(sm.func.count(PerfilAcademico.id))).one()
+                return usuarios
+        except Exception as e:
+            print(f"Erro ao contar usuários registrados: {e}")
+            return 0
+
     @rx.event
     def remover_disciplina(self, disc_id: str):
         self.disciplinas = [d for d in self.disciplinas if d["id"] != disc_id]
@@ -545,4 +558,15 @@ class AcademicState(rx.State):
         self.ano_letivo = str(date.today().year)
         self.is_loading = False
         return rx.redirect("/")
+
+    @rx.event
+    def verificar_admin(self):
+        """Verifica se o usuário pode acessar rotas protegidas do admin."""
+        if self.form_usuario == "":
+            return rx.redirect("/")
+        # Como o usuário optou por não colocar o RA "chumbado", deixaremos 
+        # aberto por enquanto, mas com redirecionamento de anônimos para a login page.
+        # Descomente a linha abaixo e adicione o RA correto para restringir totalmente:
+        if self.form_usuario != "ra147190":
+            return rx.redirect("/dashboard")
 

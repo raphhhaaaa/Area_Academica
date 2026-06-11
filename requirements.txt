@@ -21,6 +21,7 @@ mdurl==0.1.2
 packaging==26.2
 platformdirs==4.9.6
 playwright==1.60.0
+psycopg2-binary==2.9.10
 pycparser==3.0
 pydantic==2.13.4
 pydantic_core==2.46.4

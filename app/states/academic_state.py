@@ -387,8 +387,11 @@ class AcademicState(rx.State):
             self.error_message = str(e)
         except Exception as e:
             import traceback
-            traceback.print_exc()
-            self.error_message = f"Erro inesperado: {str(e)}"
+            tb_str = traceback.format_exc()
+            print(tb_str)
+            
+            ultima_linha = tb_str.strip().split('\n')[-1]
+            self.error_message = f"Falha inesperada: {ultima_linha[:150]}"
         finally:
             self.is_loading = False
 
@@ -439,8 +442,11 @@ class AcademicState(rx.State):
             self.error_message = str(e)
         except Exception as e:
             import traceback
-            traceback.print_exc()
-            self.error_message = f"Erro ao sincronizar: {str(e)}"
+            tb_str = traceback.format_exc()
+            print(tb_str)
+            
+            ultima_linha = tb_str.strip().split('\n')[-1]
+            self.error_message = f"Falha ao sincronizar: {ultima_linha[:150]}"
         finally:
             self.is_loading = False
 

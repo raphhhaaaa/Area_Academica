@@ -17,7 +17,7 @@ def index() -> rx.Component:
             rx.el.div(
                 header_section(
                     title="Área Acadêmica", 
-                    subtitle="Gerencie suas disciplinas, acompanhe suas notas periódicas, controle faltas e evite exames."
+                    subtitle="Gerencie suas disciplinas, acompanhe suas notas, controle faltas e evite exames."
                 ),
                 summary_cards(),
                 discipline_list(),

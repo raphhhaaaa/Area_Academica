@@ -30,6 +30,7 @@ python-dotenv==1.2.2
 python-engineio==4.13.2
 python-multipart==0.0.29
 python-socketio==5.16.2
+psycopg2-binary==2.9.10
 redis==7.4.0
 reflex==0.9.4
 reflex-base==0.9.4

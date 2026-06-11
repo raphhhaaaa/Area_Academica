@@ -4,6 +4,7 @@ import requests
 from sqlmodel import select
 import sqlmodel as sm
 from app.models import PerfilAcademico
+from rxconfig import _db_url
 
 class AdminState(rx.State):
     is_checking_sisav: bool = False
@@ -14,7 +15,7 @@ class AdminState(rx.State):
     def is_production(self) -> bool:
         """Verifica se o app está rodando em produção"""
         # Geralmente em produção temos um banco postgresql setado na URL
-        db_url = os.environ.get("DB_URL", "")
+        db_url = _db_url
         if "postgresql" in db_url:
             return True
         return False

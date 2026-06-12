@@ -24,7 +24,7 @@ def render_celula(celula: dict) -> rx.Component:
                     rx.el.span(celula.disciplina_id, class_name=rx.cond(
                         AcademicState.is_dark,
                         "text-[9px] bg-blue-900/50 text-blue-200 px-1 py-0.5 rounded font-bold",
-                        "text-[9px] bg-blue-500 text-white px-1 py-0.5 rounded font-bold shadow-sm"
+                        "text-[9px] bg-blue-900/50 text-white px-1 py-0.5 rounded font-bold shadow-sm"
                     )),
                         
                     rx.el.div(
@@ -45,7 +45,7 @@ def render_celula(celula: dict) -> rx.Component:
                 class_name=rx.cond(
                     AcademicState.is_dark,
                     "w-full rounded-lg bg-blue-900/30 border border-blue-800/70 p-2 shadow hover:bg-blue-900/50 transition-colors",
-                    "w-full rounded-lg bg-blue-600 border border-blue-700 p-2 shadow-md hover:bg-blue-700 hover:shadow-lg transition-all"
+                    "w-full rounded-lg bg-blue-500/90 border border-white-900 p-2 shadow-md hover:bg-blue-700 hover:shadow-lg transition-all"
                 )
             )
         ),

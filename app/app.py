@@ -1,5 +1,6 @@
 import reflex as rx
 import app.models
+from sqlmodel import SQLModel
 from app.states.academic_state import AcademicState
 from app.components.summary_cards import summary_cards
 from app.components.discipline_list import discipline_list
@@ -61,3 +62,12 @@ app.add_page(login_page, route="/")
 app.add_page(index, route="/dashboard")
 app.add_page(horarios_page, route="/horarios")
 app.add_page(admin_page, route="/admin-uem", on_load=[AcademicState.verificar_admin, AdminState.check_systems])
+
+def init_db():
+    try:
+        with rx.session() as sessao:
+            SQLModel.metadata.create_all(sessao.bind)
+    except Exception as e:
+        print(f"Erro ao inicializar tabelas: {e}")
+
+init_db()

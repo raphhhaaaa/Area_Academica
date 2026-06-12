@@ -42,6 +42,24 @@ def header_section(title: str, subtitle: str) -> rx.Component:
             ),
             # Theme Toggle & Profile Card Container
             rx.el.div(
+
+                # Theme Toggle Button
+                rx.el.button(
+                    rx.cond(
+                        AcademicState.is_dark,
+                        rx.icon("sun", class_name="h-5 w-5 text-amber-400"),
+                        rx.icon("moon", class_name="h-5 w-5 text-gray-600"),
+                    ),
+                    on_click=AcademicState.toggle_theme,
+                    title="Alternar Tema",
+                    aria_label="Alternar Tema (Claro/Escuro)",
+                    class_name=rx.cond(
+                        AcademicState.is_dark,
+                        "p-3 rounded-2xl bg-gray-900 border border-gray-800 text-gray-100 hover:bg-gray-800/80 active:scale-95 transition-all shadow-xs flex items-center justify-center",
+                        "p-3 rounded-2xl bg-white border border-gray-100 text-gray-800 hover:bg-gray-50 active:scale-95 transition-all shadow-xs flex items-center justify-center",
+                    ),
+                ),
+
                 # Profile Card
                 rx.el.div(
                     rx.el.img(
@@ -78,22 +96,7 @@ def header_section(title: str, subtitle: str) -> rx.Component:
                         "flex items-center gap-2.5 sm:gap-3 bg-white p-2.5 sm:p-3 rounded-2xl border border-gray-100 shadow-xs",
                     ),
                 ),
-                # Theme Toggle Button
-                rx.el.button(
-                    rx.cond(
-                        AcademicState.is_dark,
-                        rx.icon("sun", class_name="h-5 w-5 text-amber-400"),
-                        rx.icon("moon", class_name="h-5 w-5 text-gray-600"),
-                    ),
-                    on_click=AcademicState.toggle_theme,
-                    title="Alternar Tema",
-                    aria_label="Alternar Tema (Claro/Escuro)",
-                    class_name=rx.cond(
-                        AcademicState.is_dark,
-                        "p-3 rounded-2xl bg-gray-900 border border-gray-800 text-gray-100 hover:bg-gray-800/80 active:scale-95 transition-all shadow-xs flex items-center justify-center",
-                        "p-3 rounded-2xl bg-white border border-gray-100 text-gray-800 hover:bg-gray-50 active:scale-95 transition-all shadow-xs flex items-center justify-center",
-                    ),
-                ),
+                
                 class_name="flex items-center justify-between sm:justify-start w-full sm:w-auto gap-2 sm:gap-3 shrink-0",
             ),
             class_name="flex flex-col-reverse sm:flex-row sm:items-center justify-between gap-5 mb-8 w-full",

@@ -189,7 +189,7 @@ async def extrair_limite_faltas(page) -> dict:
                 cd_dis = opcao[:opcao.find('-')].strip()
                 carga_horaria = opcao[opcao.find(':')+1:].strip()
                 limites[cd_dis] = carga_horaria
-        print(f"Limites de faltas extraídos (Brutos): {limites}")
+        # print(f"Limites de faltas extraídos (Brutos): {limites}")
     except Exception as e:
         print(f"Erro ao extrair limites (Frequência da Turma): {e}")
     

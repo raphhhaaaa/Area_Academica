@@ -567,6 +567,10 @@ class AcademicState(rx.State):
         # Como o usuário optou por não colocar o RA "chumbado", deixaremos 
         # aberto por enquanto, mas com redirecionamento de anônimos para a login page.
         # Descomente a linha abaixo e adicione o RA correto para restringir totalmente:
-        if self.form_usuario != "ra147190":
+        if not self.isAdmin:
             return rx.redirect("/dashboard")
+        
+    @rx.var
+    def isAdmin(self) -> bool:
+        return not self.form_usuario != "ra147190"
 

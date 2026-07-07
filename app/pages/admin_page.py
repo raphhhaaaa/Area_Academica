@@ -72,7 +72,7 @@ def admin_page() -> rx.Component:
                         rx.icon("globe", class_name="h-6 w-6 text-orange-500"),
                         rx.cond(
                             AdminState.is_checking_sisav,
-                            rx.icon("loader-2", class_name="h-4 w-4 text-orange-500 animate-spin absolute -top-1 -right-1"),
+                            rx.icon("loader-circle", class_name="h-4 w-4 text-orange-500 animate-spin absolute -top-1 -right-1"),
                             rx.fragment()
                         ),
                         class_name="p-3 bg-orange-100 dark:bg-orange-900/30 rounded-xl w-fit mb-4 relative"

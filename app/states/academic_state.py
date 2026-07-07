@@ -482,9 +482,9 @@ class AcademicState(rx.State):
         try: 
             with rx.session() as sessao:
                 import sqlmodel as sm
-                # O sessao.exec vai ao banco rodar o select, e o .one() pega o número exato
-                usuarios = sessao.exec(select(sm.func.count(PerfilAcademico.id))).one()
-                return usuarios
+                # Usa scalar() para garantir que retorna apenas o inteiro
+                usuarios = sessao.scalar(select(sm.func.count(PerfilAcademico.id)))
+                return int(usuarios) if usuarios else 0
         except Exception as e:
             print(f"Erro ao contar usuários registrados: {e}")
             return 0

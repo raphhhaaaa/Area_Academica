@@ -7,7 +7,7 @@ if os.path.exists(key_file):
     with open(key_file, "r") as f:
         SECRET_KEY = f.read().strip()
 else:
-    SECRET_KEY = os.environ.get("SECRET_KEY", Fernet.generate_key().decode("utf-8"))
+    SECRET_KEY = os.environ.get("REFLEX_SECRET_KEY", os.environ.get("SECRET_KEY", Fernet.generate_key().decode("utf-8")))
     with open(key_file, "w") as f:
         f.write(SECRET_KEY)
 

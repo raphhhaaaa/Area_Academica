@@ -115,12 +115,20 @@ def formatar_dados_sisav(dados_brutos: dict) -> tuple[list, dict]:
         limite = int(dis.get('LimiteFaltas', LIMITE_FALTAS_PADRAO))
 
         media = 0.0
-        if len(lista_notas) > 0:
-            soma = sum(nota['Nota'] for nota in lista_notas)
-            media = soma / len(lista_notas)
+        situacao_sisav = str(dis.get('Situação', dis.get('Situacao', ''))).strip()
+
+        print(situacao_sisav)
+
+        if situacao_sisav == "Matriculado" or situacao_sisav == "":
+            notas_validas = [nota.get('Nota', 0.0) for nota in lista_notas if nota.get('Nota', 0.0) != 0.0] ## remove as notas invalidas (iguais a 0.0, trata como nota não lançada ainda) do calculo da media
+        else:
+            notas_validas = [nota.get('Nota', 0.0) for nota in lista_notas]  ## fallback para caso a materia ja tenha sido encerrada e o aluno realmente ficou com 0.0 como nota final
+            
+        if notas_validas:  
+            soma = soma = sum(notas_validas)
+            media = soma / len(notas_validas)
 
         # Usa situação oficial do SISAV quando disponível
-        situacao_sisav = str(dis.get('Situação', dis.get('Situacao', '')))
         status, em_andamento = _resolver_status(situacao_sisav, media, faltas, limite)
 
         disciplina_formatada: Disciplina = {

@@ -117,8 +117,6 @@ def formatar_dados_sisav(dados_brutos: dict) -> tuple[list, dict]:
         media = 0.0
         situacao_sisav = str(dis.get('Situação', dis.get('Situacao', ''))).strip()
 
-        print(situacao_sisav)
-
         if situacao_sisav == "Matriculado" or situacao_sisav == "":
             notas_validas = [nota.get('Nota', 0.0) for nota in lista_notas if nota.get('Nota', 0.0) != 0.0] ## remove as notas invalidas (iguais a 0.0, trata como nota não lançada ainda) do calculo da media
         else:
@@ -482,9 +480,9 @@ class AcademicState(rx.State):
         try: 
             with rx.session() as sessao:
                 import sqlmodel as sm
-                # Usa scalar() para garantir que retorna apenas o inteiro
-                usuarios = sessao.scalar(select(sm.func.count(PerfilAcademico.id)))
-                return int(usuarios) if usuarios else 0
+                # O sessao.exec vai ao banco rodar o select, e o .one() pega o número exato
+                usuarios = sessao.exec(select(sm.func.count(PerfilAcademico.id))).one()
+                return usuarios
         except Exception as e:
             print(f"Erro ao contar usuários registrados: {e}")
             return 0

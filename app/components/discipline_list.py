@@ -243,7 +243,11 @@ def list_row(item: Disciplina) -> rx.Component:
                     class_name="flex flex-wrap items-center gap-1.5",
                 ),
                 rx.el.span(
-                    "Disciplina não iniciada",
+                    rx.cond(
+                        item["em_andamento"],
+                        "Disciplina não iniciada",
+                        "Disciplina Encerrada"
+                    ),
                     class_name=rx.cond(
                         AcademicState.is_dark,
                         "bg-gray-800/60 text-gray-400 font-medium px-2.5 py-1 rounded-lg text-xs border border-dashed border-gray-700",

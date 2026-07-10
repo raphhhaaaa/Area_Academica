@@ -111,10 +111,6 @@ def formatar_dados_sisav(dados_brutos: dict) -> tuple[list, dict]:
                 lista_notas.append(lista_notas_bruta[d])
 
 
-        print(lista_notas)
-
-        print(f"Disciplina: {dis.get('Disciplina', [])}, Quantidade de notas: {len(lista_notas)}")
-
         nota1 = lista_notas[0].get("Nota", 0.0) if len(lista_notas) > 0 else 0.0
         nota2 = lista_notas[1].get("Nota", 0.0) if len(lista_notas) > 1 else 0.0
         nota3 = lista_notas[2].get("Nota", 0.0) if len(lista_notas) > 2 else 0.0
@@ -127,13 +123,24 @@ def formatar_dados_sisav(dados_brutos: dict) -> tuple[list, dict]:
         situacao_sisav = str(dis.get('Situação', dis.get('Situacao', ''))).strip()
 
         if situacao_sisav == "Matriculado" or situacao_sisav == "":
-            notas_validas = [nota.get('Nota', 0.0) for nota in lista_notas if nota.get('Nota', 0.0) != 0.0] ## remove as notas invalidas (iguais a 0.0, trata como nota não lançada ainda) do calculo da media
+            notas_validas = [nota.get('Nota', 0.0) for nota in lista_notas if nota.get('Nota', 0.0) != 0.0]
+            if notas_validas:  
+                soma = sum(notas_validas)
+                media = soma / len(notas_validas)
         else:
-            notas_validas = [nota.get('Nota', 0.0) for nota in lista_notas]  ## fallback para caso a materia ja tenha sido encerrada e o aluno realmente ficou com 0.0 como nota final
+            notas_validas = [nota.get('Nota', 0.0) for nota in lista_notas]  
             
-        if notas_validas:  
-            soma = soma = sum(notas_validas)
-            media = soma / len(notas_validas)
+            # Puxa a Média Final direto da lista bruta (pois seu script filtrou ela por causa dos dois pontos ':')
+            media_bruta = 0.0
+            for nota_bruta in lista_notas_bruta:
+                if "Média Final" in nota_bruta.get('Avaliação', ''):
+                    media_bruta = nota_bruta.get('Nota', 0.0)
+                    break
+            
+            try:
+                media = float(str(media_bruta).replace(',', '.'))
+            except ValueError:
+                media = 0.0
 
         # Usa situação oficial do SISAV quando disponível
         status, em_andamento = _resolver_status(situacao_sisav, media, faltas, limite)

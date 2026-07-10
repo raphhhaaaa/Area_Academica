@@ -15,9 +15,7 @@ class Disciplina(TypedDict):
     nome: str
     faltas: int
     limite_faltas: int
-    nota1: float
-    nota2: float
-    nota3: float
+    notas: list[float]
     media: float
     status: str  # "Aprovado", "Exame", "Reprovado por Falta", "Reprovado por Nota", "Em andamento"
     em_andamento: bool  # True quando o semestre ainda está em curso (Situação = Matriculado)
@@ -104,7 +102,18 @@ def formatar_dados_sisav(dados_brutos: dict) -> tuple[list, dict]:
     lista_bruta_disciplinas = dados_brutos.get("disciplinas", [])
 
     for dis in lista_bruta_disciplinas:
-        lista_notas = dis.get('Notas', [])
+        lista_notas_bruta = dis.get('Notas', [])
+        lista_notas = []
+
+        for d in range(len(lista_notas_bruta)):
+            str_avaliacao = lista_notas_bruta[d].get('Avaliação', '')
+            if str_avaliacao[-1] != ":":
+                lista_notas.append(lista_notas_bruta[d])
+
+
+        print(lista_notas)
+
+        print(f"Disciplina: {dis.get('Disciplina', [])}, Quantidade de notas: {len(lista_notas)}")
 
         nota1 = lista_notas[0].get("Nota", 0.0) if len(lista_notas) > 0 else 0.0
         nota2 = lista_notas[1].get("Nota", 0.0) if len(lista_notas) > 1 else 0.0
@@ -135,9 +144,7 @@ def formatar_dados_sisav(dados_brutos: dict) -> tuple[list, dict]:
             "faltas": faltas,
             "faltas_originais": faltas_originais,
             "limite_faltas": limite,
-            "nota1": float(nota1),
-            "nota2": float(nota2),
-            "nota3": float(nota3),
+            "notas": [float(nota.get('Nota', 0.0)) for nota in lista_notas],
             "media": round(media, 1),
             "status": status,
             "status_original": status,  # espelho imutável do status inicial

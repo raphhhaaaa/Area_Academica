@@ -112,7 +112,7 @@ def sidebar(current_page: str = "dashboard") -> rx.Component:
                 sidebar_item("layout-dashboard", "Dashboard", "/dashboard", is_active=(current_page == "dashboard")),
                 ## o aluno so tem acesso ao calendario se estiver matriculado no semestre atual, ou seja, se o ano selecionado for igual ao ano atual
                 rx.cond(~AcademicState.ano_diferente, sidebar_item("calendar", "Horário de Aulas", "/horarios", is_active=(current_page == "horarios"))),
-                sidebar_item("user", "Feed", "/feed", is_active=(current_page == "perfil")),
+                sidebar_item("user", "Feed (EM CONSTRUÇÃO)", "/feed", is_active=(current_page == "perfil")),
                 rx.cond(AcademicState.isAdmin, sidebar_item("wrench", "Painel de Administrador", "/admin-uem", is_active=(current_page == "admin-page"))),
             ),
 

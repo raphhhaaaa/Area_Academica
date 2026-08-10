@@ -222,11 +222,38 @@ def list_row(item: Disciplina) -> rx.Component:
             class_name="px-6 py-5 align-middle",
         ),
         rx.el.td(
-            rx.el.div(
-                grade_chip(item["nota1"]),
-                grade_chip(item["nota2"]),
-                grade_chip(item["nota3"]),
-                class_name="flex items-center gap-1.5",
+            rx.cond(
+                item["notas"].length() > 0,
+                rx.el.div(
+                    rx.foreach(
+                        item["notas"],
+                        lambda nota: rx.cond(
+                            nota != 0.0,
+                            grade_chip(nota),
+                            rx.el.span(
+                                "0.0",
+                                class_name=rx.cond(
+                                    AcademicState.is_dark,
+                                    "bg-gray-800/60 text-gray-400 font-medium px-2.5 py-1 rounded-lg text-xs border border-dashed border-gray-700",
+                                    "bg-gray-100 text-gray-400 font-medium px-2.5 py-1 rounded-lg text-xs border border-dashed border-gray-300"
+                                )
+                            )
+                        )
+                    ),
+                    class_name="flex flex-wrap items-center gap-1.5",
+                ),
+                rx.el.span(
+                    rx.cond(
+                        item["em_andamento"],
+                        "Disciplina não iniciada",
+                        "Disciplina Encerrada"
+                    ),
+                    class_name=rx.cond(
+                        AcademicState.is_dark,
+                        "bg-gray-800/60 text-gray-400 font-medium px-2.5 py-1 rounded-lg text-xs border border-dashed border-gray-700",
+                        "bg-gray-100 text-gray-400 font-medium px-2.5 py-1 rounded-lg text-xs border border-dashed border-gray-300"
+                    )
+                )
             ),
             class_name="px-6 py-5 align-middle",
         ),
@@ -375,7 +402,7 @@ def discipline_list() -> rx.Component:
                                 ),
                             ),
                             rx.el.th(
-                                "Notas (N1, N2, N3)",
+                                "Notas",
                                 class_name=rx.cond(
                                     AcademicState.is_dark,
                                     "px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-widest bg-gray-850/40",

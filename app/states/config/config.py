@@ -13,7 +13,7 @@ SENHA_REMETENTE = os.getenv("SENHA_REMETENTE_SMTP")
 DOMINIO_INSTITUICAO = os.getenv("DOMINIO_INSTITUICAO")
 
 INT_FIELDS = ["Faltas", "Série"]
-DEBUG = True
+DEBUG = os.getenv("DEBUG", "False").lower() in ("true", "1", "yes")
 NOME_JSON = 'dados.json'
 
 ENV_PATH = os.path.join(os.path.dirname(__file__), "../../../../.env")

@@ -15,9 +15,7 @@ class Disciplina(TypedDict):
     nome: str
     faltas: int
     limite_faltas: int
-    nota1: float
-    nota2: float
-    nota3: float
+    notas: list[float]
     media: float
     status: str  # "Aprovado", "Exame", "Reprovado por Falta", "Reprovado por Nota", "Em andamento"
     em_andamento: bool  # True quando o semestre ainda está em curso (Situação = Matriculado)
@@ -104,7 +102,14 @@ def formatar_dados_sisav(dados_brutos: dict) -> tuple[list, dict]:
     lista_bruta_disciplinas = dados_brutos.get("disciplinas", [])
 
     for dis in lista_bruta_disciplinas:
-        lista_notas = dis.get('Notas', [])
+        lista_notas_bruta = dis.get('Notas', [])
+        lista_notas = []
+
+        for d in range(len(lista_notas_bruta)):
+            str_avaliacao = lista_notas_bruta[d].get('Avaliação', '')
+            if str_avaliacao[-1] != ":":
+                lista_notas.append(lista_notas_bruta[d])
+
 
         nota1 = lista_notas[0].get("Nota", 0.0) if len(lista_notas) > 0 else 0.0
         nota2 = lista_notas[1].get("Nota", 0.0) if len(lista_notas) > 1 else 0.0
@@ -115,12 +120,29 @@ def formatar_dados_sisav(dados_brutos: dict) -> tuple[list, dict]:
         limite = int(dis.get('LimiteFaltas', LIMITE_FALTAS_PADRAO))
 
         media = 0.0
-        if len(lista_notas) > 0:
-            soma = sum(nota['Nota'] for nota in lista_notas)
-            media = soma / len(lista_notas)
+        situacao_sisav = str(dis.get('Situação', dis.get('Situacao', ''))).strip()
+
+        if situacao_sisav == "Matriculado" or situacao_sisav == "":
+            notas_validas = [nota.get('Nota', 0.0) for nota in lista_notas if nota.get('Nota', 0.0) != 0.0]
+            if notas_validas:  
+                soma = sum(notas_validas)
+                media = soma / len(notas_validas)
+        else:
+            notas_validas = [nota.get('Nota', 0.0) for nota in lista_notas]  
+            
+            # Puxa a Média Final direto da lista bruta (pois seu script filtrou ela por causa dos dois pontos ':')
+            media_bruta = 0.0
+            for nota_bruta in lista_notas_bruta:
+                if "Média Final" in nota_bruta.get('Avaliação', ''):
+                    media_bruta = nota_bruta.get('Nota', 0.0)
+                    break
+            
+            try:
+                media = float(str(media_bruta).replace(',', '.'))
+            except ValueError:
+                media = 0.0
 
         # Usa situação oficial do SISAV quando disponível
-        situacao_sisav = str(dis.get('Situação', dis.get('Situacao', '')))
         status, em_andamento = _resolver_status(situacao_sisav, media, faltas, limite)
 
         disciplina_formatada: Disciplina = {
@@ -129,9 +151,7 @@ def formatar_dados_sisav(dados_brutos: dict) -> tuple[list, dict]:
             "faltas": faltas,
             "faltas_originais": faltas_originais,
             "limite_faltas": limite,
-            "nota1": float(nota1),
-            "nota2": float(nota2),
-            "nota3": float(nota3),
+            "notas": [float(nota.get('Nota', 0.0)) for nota in lista_notas],
             "media": round(media, 1),
             "status": status,
             "status_original": status,  # espelho imutável do status inicial

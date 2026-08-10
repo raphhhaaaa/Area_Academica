@@ -190,7 +190,7 @@ def feed_page() -> rx.Component:
                             ),
                             rx.el.button(
                                 "Publicar",
-                                on_click=lambda: print("Publicação Criada! (Funcionalidade Futura)"),
+                                on_click=print("Publicação Criada! (Funcionalidade Futura)"),
                                 class_name="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-full text-sm font-bold transition-all shadow-md hover:shadow-lg ml-auto active:scale-95"
                             ),
                             class_name="flex items-center border-t border-gray-100 dark:border-gray-800 pt-3"
